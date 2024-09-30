@@ -1,0 +1,71 @@
+{
+  "format": 1,
+  "restore": {
+    "/home/arturo/Universidad/Semestre3/ID3_DataBase/MiProyectoSQLite.csproj": {}
+  },
+  "projects": {
+    "/home/arturo/Universidad/Semestre3/ID3_DataBase/MiProyectoSQLite.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/arturo/Universidad/Semestre3/ID3_DataBase/MiProyectoSQLite.csproj",
+        "projectName": "MiProyectoSQLite",
+        "projectPath": "/home/arturo/Universidad/Semestre3/ID3_DataBase/MiProyectoSQLite.csproj",
+        "packagesPath": "/home/arturo/.nuget/packages/",
+        "outputPath": "/home/arturo/Universidad/Semestre3/ID3_DataBase/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/arturo/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net7.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net7.0": {
+            "targetAlias": "net7.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net7.0": {
+          "targetAlias": "net7.0",
+          "dependencies": {
+            "System.Data.SQLite": {
+              "target": "Package",
+              "version": "[1.0.119, )"
+            },
+            "TagLibSharp": {
+              "target": "Package",
+              "version": "[2.3.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/lib64/dotnet/sdk/7.0.119/RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
