@@ -1,2 +1,174 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿using System;
+using System.Data.SQLite;
+using System.IO;
+using TagLib;
+
+class Minero
+{
+    // Ruta predeterminada para minado
+    static string rutaMusicaUsuario = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic));
+
+    static void Main(string[] args)
+    {
+        // Conectar a la base de datos SQLite
+        string connectionString = "Data Source=music_library.db;Version=3;";
+        using (SQLiteConnection connection = new SQLiteConnection(connectionString))
+        {
+            connection.Open();
+            CrearTablasSiNoExisten(connection);
+            MinarDirectorio(connection, rutaMusicaUsuario);
+        }
+    }
+
+    // Función para crear las tablas si no existen
+    static void CrearTablasSiNoExisten(SQLiteConnection connection)
+    {
+        string[] tablas = {
+            "CREATE TABLE IF NOT EXISTS types (id_type INTEGER PRIMARY KEY, description TEXT)",
+            "INSERT OR IGNORE INTO types VALUES(0,'Person'), (1,'Group'), (2,'Unknown')",
+            "CREATE TABLE IF NOT EXISTS performers (id_performer INTEGER PRIMARY KEY, id_type INTEGER, name TEXT, FOREIGN KEY (id_type) REFERENCES types(id_type))",
+            "CREATE TABLE IF NOT EXISTS persons (id_person INTEGER PRIMARY KEY, stage_name TEXT, real_name TEXT, birth_date TEXT, death_date TEXT)",
+            "CREATE TABLE IF NOT EXISTS groups (id_group INTEGER PRIMARY KEY, name TEXT, start_date TEXT, end_date TEXT)",
+            "CREATE TABLE IF NOT EXISTS in_group (id_person INTEGER, id_group INTEGER, PRIMARY KEY (id_person, id_group), FOREIGN KEY (id_person) REFERENCES persons(id_person), FOREIGN KEY (id_group) REFERENCES groups(id_group))",
+            "CREATE TABLE IF NOT EXISTS albums (id_album INTEGER PRIMARY KEY, path TEXT, name TEXT, year INTEGER)",
+            "CREATE TABLE IF NOT EXISTS rolas (id_rola INTEGER PRIMARY KEY, id_performer INTEGER, id_album INTEGER, path TEXT, title TEXT, track INTEGER, year INTEGER, genre TEXT, FOREIGN KEY (id_performer) REFERENCES performers(id_performer), FOREIGN KEY (id_album) REFERENCES albums(id_album))"
+        };
+
+        foreach (var tabla in tablas)
+        {
+            SQLiteCommand command = new SQLiteCommand(tabla, connection);
+            command.ExecuteNonQuery();
+        }
+    }
+
+    // Función que mina la carpeta en busca de archivos MP3 y extrae etiquetas ID3v2.4
+    static void MinarDirectorio(SQLiteConnection connection, string ruta)
+    {
+        foreach (string archivo in Directory.EnumerateFiles(ruta, "*.mp3", SearchOption.AllDirectories))
+        {
+            try
+            {
+                // Desambiguar usando el namespace completo para TagLib.File
+                TagLib.File file = TagLib.File.Create(archivo);
+
+                // Extraer etiquetas ID3v2.4 con valores por defecto
+                string performer = file.Tag.FirstPerformer ?? "Unknown";
+                string title = file.Tag.Title ?? "Unknown";
+                string album = file.Tag.Album ?? "Unknown";
+                
+                // Usar el año actual o la fecha de creación del archivo si no hay año en las etiquetas
+                int year = ObtenerFechaDeArchivo(archivo);
+
+                string genre = file.Tag.FirstGenre ?? "Unknown";
+                
+                // Usar 0 o 1 si no se encuentra el número de pista
+                int track = (int)(file.Tag.Track != 0 ? file.Tag.Track : 1);
+
+                // Insertar performers y álbum si no están en la base de datos
+                int id_performer = InsertarPerformerSiNoExiste(connection, performer, file.Tag.AlbumArtists.Length > 1 ? 1 : 0); // 1 = Grupo, 0 = Persona
+                int id_album = InsertarAlbumSiNoExiste(connection, album, year, archivo);
+                
+                // Insertar la canción (rola) si no existe
+                InsertarRolaSiNoExiste(connection, title, id_performer, id_album, archivo, track, year, genre);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al procesar {archivo}: {ex.Message}");
+            }
+        }
+    }
+
+    // Función para insertar un performer (persona o grupo) si no existe
+    static int InsertarPerformerSiNoExiste(SQLiteConnection connection, string performer, int id_type)
+    {
+        // Verificar si el performer ya existe
+        string queryCheck = "SELECT id_performer FROM performers WHERE name = @name AND id_type = @id_type";
+        SQLiteCommand commandCheck = new SQLiteCommand(queryCheck, connection);
+        commandCheck.Parameters.AddWithValue("@name", performer);
+        commandCheck.Parameters.AddWithValue("@id_type", id_type);
+
+        object result = commandCheck.ExecuteScalar();
+        if (result != null)
+        {
+            return Convert.ToInt32(result); // Retornar el id_performer existente
+        }
+
+        // Insertar el performer si no existe
+        string queryInsert = "INSERT INTO performers (name, id_type) VALUES (@name, @id_type)";
+        SQLiteCommand commandInsert = new SQLiteCommand(queryInsert, connection);
+        commandInsert.Parameters.AddWithValue("@name", performer);
+        commandInsert.Parameters.AddWithValue("@id_type", id_type);
+        commandInsert.ExecuteNonQuery();
+
+        // Obtener el id_performer insertado
+        return (int)connection.LastInsertRowId;
+    }
+
+    // Función para insertar un álbum si no existe
+    static int InsertarAlbumSiNoExiste(SQLiteConnection connection, string album, int year, string path)
+    {
+        // Verificar si el álbum ya existe
+        string queryCheck = "SELECT id_album FROM albums WHERE name = @name AND year = @year";
+        SQLiteCommand commandCheck = new SQLiteCommand(queryCheck, connection);
+        commandCheck.Parameters.AddWithValue("@name", album);
+        commandCheck.Parameters.AddWithValue("@year", year);
+
+        object result = commandCheck.ExecuteScalar();
+        if (result != null)
+        {
+            return Convert.ToInt32(result); // Retornar el id_album existente
+        }
+
+        // Insertar el álbum si no existe
+        string queryInsert = "INSERT INTO albums (name, year, path) VALUES (@name, @year, @path)";
+        SQLiteCommand commandInsert = new SQLiteCommand(queryInsert, connection);
+        commandInsert.Parameters.AddWithValue("@name", album);
+        commandInsert.Parameters.AddWithValue("@year", year);
+        commandInsert.Parameters.AddWithValue("@path", path);
+        commandInsert.ExecuteNonQuery();
+
+        // Obtener el id_album insertado
+        return (int)connection.LastInsertRowId;
+    }
+
+    static void InsertarRolaSiNoExiste(SQLiteConnection connection, string title, int id_performer, int id_album, string path, int track, int year, string genre) {
+        // Verificar si la rola ya existe
+        string queryCheck = "SELECT id_rola FROM rolas WHERE title = @title AND path = @path";
+        SQLiteCommand commandCheck = new SQLiteCommand(queryCheck, connection);
+        commandCheck.Parameters.AddWithValue("@title", title);
+        commandCheck.Parameters.AddWithValue("@path", path);
+
+        object result = commandCheck.ExecuteScalar();
+        if (result != null)
+        {
+            Console.WriteLine($"La rola '{title}' ya existe en la base de datos.");
+            return; // La rola ya existe, no hacer nada
+        }
+
+        // Insertar la rola si no existe
+        string queryInsert = "INSERT INTO rolas (title, id_performer, id_album, path, track, year, genre) VALUES (@title, @id_performer, @id_album, @path, @track, @year, @genre)";
+        SQLiteCommand commandInsert = new SQLiteCommand(queryInsert, connection);
+        commandInsert.Parameters.AddWithValue("@title", title);
+        commandInsert.Parameters.AddWithValue("@id_performer", id_performer);
+        commandInsert.Parameters.AddWithValue("@id_album", id_album);
+        commandInsert.Parameters.AddWithValue("@path", path);
+        commandInsert.Parameters.AddWithValue("@track", track);
+        commandInsert.Parameters.AddWithValue("@year", year);
+        commandInsert.Parameters.AddWithValue("@genre", genre);
+        commandInsert.ExecuteNonQuery();
+    }
+
+    // Función para obtener el año de creación del archivo si falta el año en las etiquetas
+    static int ObtenerFechaDeArchivo(string path)
+    {
+        try
+        {
+            DateTime creationTime = System.IO.File.GetCreationTime(path);
+            return creationTime.Year;
+        }
+        catch
+        {
+            return DateTime.Now.Year; // Si falla obtener la fecha de creación, usar el año actual
+        }
+    }
+}
