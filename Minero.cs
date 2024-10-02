@@ -152,15 +152,12 @@ class Minero
     }
 
     // Función para obtener el año de creación del archivo si falta el año en las etiquetas
-    static int ObtenerFechaDeArchivo(string path)
-    {
-        try
-        {
+    static int ObtenerFechaDeArchivo(string path) {
+        try {
             DateTime creationTime = System.IO.File.GetCreationTime(path);
             return creationTime.Year;
         }
-        catch
-        {
+        catch {
             return DateTime.Now.Year; // Si falla obtener la fecha de creación, usar el año actual
         }
     }
