@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Data.SQLite;
 using System.IO;
+using Microsoft.Data.Sqlite;  
 using TagLib;
 
 class Minero
@@ -8,20 +8,9 @@ class Minero
     // Ruta predeterminada para minado
     static string rutaMusicaUsuario = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic));
 
-    static void Main(string[] args)
-    {
-        // Conectar a la base de datos SQLite
-        string connectionString = "Data Source=music_library.db;Version=3;";
-        using (SQLiteConnection connection = new SQLiteConnection(connectionString))
-        {
-            connection.Open();
-            CrearTablasSiNoExisten(connection);
-            MinarDirectorio(connection, rutaMusicaUsuario);
-        }
-    }
 
     // Función para crear las tablas si no existen
-    static void CrearTablasSiNoExisten(SQLiteConnection connection)
+    public void CrearTablasSiNoExisten(SqliteConnection connection)
     {
         string[] tablas = {
             "CREATE TABLE IF NOT EXISTS types (id_type INTEGER PRIMARY KEY, description TEXT)",
@@ -36,18 +25,15 @@ class Minero
 
         foreach (var tabla in tablas)
         {
-            SQLiteCommand command = new SQLiteCommand(tabla, connection);
+            SqliteCommand command = new SqliteCommand(tabla, connection);  // Cambiado a SqliteCommand
             command.ExecuteNonQuery();
         }
     }
 
     // Función que mina la carpeta en busca de archivos MP3 y extrae etiquetas ID3v2.4
-    static void MinarDirectorio(SQLiteConnection connection, string ruta)
-    {
-        foreach (string archivo in Directory.EnumerateFiles(ruta, "*.mp3", SearchOption.AllDirectories))
-        {
-            try
-            {
+    public void MinarDirectorio(SqliteConnection connection, string ruta) {
+        foreach (string archivo in Directory.EnumerateFiles(ruta, "*.mp3", SearchOption.AllDirectories)) {
+            try {
                 // Desambiguar usando el namespace completo para TagLib.File
                 TagLib.File file = TagLib.File.Create(archivo);
 
@@ -79,41 +65,47 @@ class Minero
     }
 
     // Función para insertar un performer (persona o grupo) si no existe
-    static int InsertarPerformerSiNoExiste(SQLiteConnection connection, string performer, int id_type)
+    static int InsertarPerformerSiNoExiste(SqliteConnection connection, string performer, int id_type)
     {
         // Verificar si el performer ya existe
         string queryCheck = "SELECT id_performer FROM performers WHERE name = @name AND id_type = @id_type";
-        SQLiteCommand commandCheck = new SQLiteCommand(queryCheck, connection);
+        SqliteCommand commandCheck = new SqliteCommand(queryCheck, connection);  // Cambiado a SqliteCommand
         commandCheck.Parameters.AddWithValue("@name", performer);
         commandCheck.Parameters.AddWithValue("@id_type", id_type);
 
-        object result = commandCheck.ExecuteScalar();
+        object? result = commandCheck.ExecuteScalar();
         if (result != null)
         {
-            return Convert.ToInt32(result); // Retornar el id_performer existente
+            return Convert.ToInt32(result); 
         }
 
         // Insertar el performer si no existe
         string queryInsert = "INSERT INTO performers (name, id_type) VALUES (@name, @id_type)";
-        SQLiteCommand commandInsert = new SQLiteCommand(queryInsert, connection);
+        SqliteCommand commandInsert = new SqliteCommand(queryInsert, connection);  // Cambiado a SqliteCommand
         commandInsert.Parameters.AddWithValue("@name", performer);
         commandInsert.Parameters.AddWithValue("@id_type", id_type);
         commandInsert.ExecuteNonQuery();
 
         // Obtener el id_performer insertado
-        return (int)connection.LastInsertRowId;
+        object? r = new SqliteCommand("SELECT last_insert_rowid()", connection).ExecuteScalar();
+        if (r == null)
+        {
+            throw new InvalidOperationException("Error al obtener el último ID insertado.");
+        }
+        int id = Convert.ToInt32(r);
+        return id;
     }
 
     // Función para insertar un álbum si no existe
-    static int InsertarAlbumSiNoExiste(SQLiteConnection connection, string album, int year, string path)
+    static int InsertarAlbumSiNoExiste(SqliteConnection connection, string album, int year, string path)
     {
         // Verificar si el álbum ya existe
         string queryCheck = "SELECT id_album FROM albums WHERE name = @name AND year = @year";
-        SQLiteCommand commandCheck = new SQLiteCommand(queryCheck, connection);
+        SqliteCommand commandCheck = new SqliteCommand(queryCheck, connection);  // Cambiado a SqliteCommand
         commandCheck.Parameters.AddWithValue("@name", album);
         commandCheck.Parameters.AddWithValue("@year", year);
 
-        object result = commandCheck.ExecuteScalar();
+        object? result = commandCheck.ExecuteScalar();
         if (result != null)
         {
             return Convert.ToInt32(result); // Retornar el id_album existente
@@ -121,33 +113,34 @@ class Minero
 
         // Insertar el álbum si no existe
         string queryInsert = "INSERT INTO albums (name, year, path) VALUES (@name, @year, @path)";
-        SQLiteCommand commandInsert = new SQLiteCommand(queryInsert, connection);
+        SqliteCommand commandInsert = new SqliteCommand(queryInsert, connection);  // Cambiado a SqliteCommand
         commandInsert.Parameters.AddWithValue("@name", album);
         commandInsert.Parameters.AddWithValue("@year", year);
         commandInsert.Parameters.AddWithValue("@path", path);
         commandInsert.ExecuteNonQuery();
 
         // Obtener el id_album insertado
-        return (int)connection.LastInsertRowId;
+        int id = Convert.ToInt32(new SqliteCommand("SELECT last_insert_rowid()", connection).ExecuteScalar() ?? -1);
+        return id;
     }
 
-    static void InsertarRolaSiNoExiste(SQLiteConnection connection, string title, int id_performer, int id_album, string path, int track, int year, string genre) {
+    // Función para insertar una rola si no existe
+    static void InsertarRolaSiNoExiste(SqliteConnection connection, string title, int id_performer, int id_album, string path, int track, int year, string genre) {
         // Verificar si la rola ya existe
         string queryCheck = "SELECT id_rola FROM rolas WHERE title = @title AND path = @path";
-        SQLiteCommand commandCheck = new SQLiteCommand(queryCheck, connection);
+        SqliteCommand commandCheck = new SqliteCommand(queryCheck, connection);  // Cambiado a SqliteCommand
         commandCheck.Parameters.AddWithValue("@title", title);
         commandCheck.Parameters.AddWithValue("@path", path);
 
-        object result = commandCheck.ExecuteScalar();
-        if (result != null)
-        {
+        object? result = commandCheck.ExecuteScalar();
+        if (result != null) {
             Console.WriteLine($"La rola '{title}' ya existe en la base de datos.");
             return; // La rola ya existe, no hacer nada
         }
 
         // Insertar la rola si no existe
         string queryInsert = "INSERT INTO rolas (title, id_performer, id_album, path, track, year, genre) VALUES (@title, @id_performer, @id_album, @path, @track, @year, @genre)";
-        SQLiteCommand commandInsert = new SQLiteCommand(queryInsert, connection);
+        SqliteCommand commandInsert = new SqliteCommand(queryInsert, connection);  // Cambiado a SqliteCommand
         commandInsert.Parameters.AddWithValue("@title", title);
         commandInsert.Parameters.AddWithValue("@id_performer", id_performer);
         commandInsert.Parameters.AddWithValue("@id_album", id_album);
