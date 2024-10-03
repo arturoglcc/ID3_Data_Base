@@ -34,7 +34,6 @@ namespace MusicApp.Controllers
         // Método para manejar la selección de una canción (botón clicado)
         private void OnCancionSeleccionada(Cancion cancion)
         {
-            // Por ahora no hace nada. En el futuro, llamará al controlador Displayer
             Console.WriteLine($"Botón de canción seleccionado: {cancion.Titulo}");
         }
     }

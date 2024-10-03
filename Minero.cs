@@ -88,8 +88,7 @@ class Minero
 
         // Obtener el id_performer insertado
         object? r = new SqliteCommand("SELECT last_insert_rowid()", connection).ExecuteScalar();
-        if (r == null)
-        {
+        if (r == null) {
             throw new InvalidOperationException("Error al obtener el último ID insertado.");
         }
         int id = Convert.ToInt32(r);

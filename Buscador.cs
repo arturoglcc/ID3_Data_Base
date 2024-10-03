@@ -43,7 +43,7 @@ public class Buscador {
                     Album = reader["name"] != DBNull.Value ? reader["name"]?.ToString() ?? "Unknown" : "Unknown",
                     Intérprete = reader["performer"] != DBNull.Value ? reader["performer"]?.ToString() ?? "Unknown" : "Unknown",
                     Año = reader["year"] != DBNull.Value ? Convert.ToInt32(reader["year"]) : ObtenerFechaDeArchivo(reader["path"]?.ToString()),
-                    Género = reader["genre"] != DBNull.Value ? reader["genre"]?.ToString() ?? "Unknown" : "Unknown",
+                    Genero = reader["genre"] != DBNull.Value ? reader["genre"]?.ToString() ?? "Unknown" : "Unknown",
                     Pista = reader["track"] != DBNull.Value ? Convert.ToInt32(reader["track"]) : 1,
                     Path = reader["path"] != DBNull.Value ? reader["path"]?.ToString() ?? "Ruta no disponible" : "Ruta no disponible"
                 };
@@ -115,7 +115,7 @@ public class Cancion {
     public string Album { get; set; }
     public string Intérprete { get; set; }
     public int Año { get; set; }
-    public string Género { get; set; }
+    public string Genero { get; set; }
     public int Pista { get; set; }
     public string Path { get; set; }
 
@@ -124,7 +124,7 @@ public class Cancion {
         Album = "Unknown";
         Intérprete = "Unknown";
         Año = DateTime.Now.Year;
-        Género = "Unknown";
+        Genero = "Unknown";
         Pista = 1;
         Path = "Ruta no disponible";
     }

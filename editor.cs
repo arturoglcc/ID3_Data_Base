@@ -3,39 +3,31 @@ using System.Collections.Generic;
 using System.Data.SQLite;
 using TagLib;
 
-public class Editor
-{
+public class Editor {
     private string connectionString = "Data Source=music_library.db;Version=3;";
 
     // Método para editar una rola
-    public void EditarRola(int idRola, string nuevoNombre, int nuevoAno, string nuevoGenero, int nuevoTrack, string tipoPerformer, string nombrePerformer, List<string>? integrantes = null, DateTime? fechaInicio = null, DateTime? fechaFin = null)
-    {
+    public void EditarRola(int idRola, string nuevoNombre, int nuevoAno, string nuevoGenero, int nuevoTrack, string tipoPerformer, string nombrePerformer, List<string>? integrantes = null, DateTime? fechaInicio = null, DateTime? fechaFin = null) {
         // Actualizar archivo MP3
-        if (!ModificarArchivoMP3(idRola, nuevoNombre, nuevoAno, nuevoGenero, nuevoTrack, nombrePerformer))
-        {
+        if (!ModificarArchivoMP3(idRola, nuevoNombre, nuevoAno, nuevoGenero, nuevoTrack, nombrePerformer)) {
             Console.WriteLine("Error al modificar el archivo MP3.");
             return;
         }
 
         // Actualizar la base de datos
-        using (SQLiteConnection connection = new SQLiteConnection(connectionString))
-        {
+        using (SQLiteConnection connection = new SQLiteConnection(connectionString)) {
             connection.Open();
-            using (SQLiteTransaction transaction = connection.BeginTransaction())
-            {
-                try
-                {
+            using (SQLiteTransaction transaction = connection.BeginTransaction()) {
+                try {
                     // Actualizar la tabla rolas
                     ActualizarRolaEnBaseDeDatos(connection, idRola, nuevoNombre, nuevoAno, nuevoGenero, nuevoTrack);
 
                     // Verificar si es un solista o un grupo
-                    if (tipoPerformer == "solista")
-                    {
+                    if (tipoPerformer == "solista") {
                         // Actualizar solista
                         ActualizarSolista(connection, nombrePerformer);
                     }
-                    else if (tipoPerformer == "grupo")
-                    {
+                    else if (tipoPerformer == "grupo") {
                         // Actualizar grupo y sus integrantes
                         ActualizarGrupo(connection, nombrePerformer, integrantes, fechaInicio, fechaFin);
                     }
@@ -44,8 +36,7 @@ public class Editor
                     transaction.Commit();
                     Console.WriteLine("Modificación exitosa en la base de datos.");
                 }
-                catch (Exception ex)
-                {
+                catch (Exception ex) {
                     Console.WriteLine($"Error al modificar la base de datos: {ex.Message}");
                     transaction.Rollback();
                 }
@@ -148,10 +139,8 @@ public class Editor
     }
 
     // Método para obtener el path del archivo MP3 desde la base de datos
-    private string ObtenerPathArchivoMP3(int idRola)
-    {
-        using (SQLiteConnection connection = new SQLiteConnection(connectionString))
-        {
+    private string ObtenerPathArchivoMP3(int idRola) {
+        using (SQLiteConnection connection = new SQLiteConnection(connectionString)) {
             connection.Open();
             string query = "SELECT path FROM rolas WHERE id_rola = @idRola";
             SQLiteCommand command = new SQLiteCommand(query, connection);

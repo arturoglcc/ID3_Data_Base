@@ -8,8 +8,8 @@ namespace MusicApp.Controllers
         private SongsListController songsListController;
         private string rutaMinado; // Ruta donde se hará el minado
         private MainView vista;
-        private SongsListView vistaCanciones;
         private List<Buscador.Criterio> criteriosBusqueda; // Lista de criterios de búsqueda
+        
 
         public MainBarController(MainView vista, SongsListView vistaCanciones)
         {
@@ -17,13 +17,18 @@ namespace MusicApp.Controllers
             criteriosBusqueda = new List<Buscador.Criterio>();
             rutaMinado = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
             vista.ActualizarTitulo(rutaMinado);
-            this.vistaCanciones = vistaCanciones;
             songsListController = new SongsListController(vistaCanciones);
         }
 
         public string GetRutaMinado()
         {
             return rutaMinado;
+        }
+
+                // Método para obtener la lista de criterios de búsqueda
+        public List<Buscador.Criterio> ObtenerCriterios()
+        {
+            return criteriosBusqueda;
         }
 
         // Seleccionar la ruta de minado
@@ -102,12 +107,29 @@ namespace MusicApp.Controllers
         }
 
         // Ejecutar búsqueda
-        public void EjecutarBusqueda()
-        {
+        public void EjecutarBusqueda() {
             Buscador buscador = new Buscador();
             List<Cancion> resultados = buscador.Buscar(criteriosBusqueda);
             Console.WriteLine($"Se encontraron {resultados.Count} canciones.");
             songsListController.CargarCanciones(resultados);
+            criteriosBusqueda.Clear();
         }
+
+     // Método para eliminar los criterios seleccionados
+        public void EliminarCriteriosSeleccionados(List<int> indicesSeleccionados)
+        {
+            indicesSeleccionados.Sort((a, b) => b.CompareTo(a));  // Ordenar en orden descendente para evitar problemas al eliminar
+
+            foreach (int indice in indicesSeleccionados)
+            {
+                if (indice >= 0 && indice < criteriosBusqueda.Count)
+                {
+                    Console.WriteLine($"Criterio eliminado: {criteriosBusqueda[indice].Nombre}");
+                    criteriosBusqueda.RemoveAt(indice);
+                }
+            }
+        }
+
+        
     }
 }
