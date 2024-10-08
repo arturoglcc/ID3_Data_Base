@@ -9,11 +9,13 @@ public class MainView : Window
     private Button botonAgregarCriterio = null!;
     private Entry textoCriterio = null!;
     private ComboBoxText comboEtiquetas = null!;
+    private DisplayerView displayerView;
 
     public MainView() : base("Gestor de Música") {
          // Crear e integrar SongsListView con FlowBox
         songsListView = new SongsListView();
-        controlador = new MainBarController(this, songsListView);
+        displayerView = new DisplayerView();
+        controlador = new MainBarController(this, songsListView, displayerView);
         
 
         SetDefaultSize(600, 400);
@@ -22,6 +24,7 @@ public class MainView : Window
         Grid mainLayout = new Grid();
         mainLayout.RowSpacing = 5;
         mainLayout.ColumnSpacing = 5;
+        mainLayout.Attach(displayerView, 0, 1, 1, 1);
 
         // Crear botón "Criterios"
         botonCriterios = new Button("Criterios");
@@ -29,7 +32,7 @@ public class MainView : Window
         botonCriterios.Clicked += (sender, e) => MostrarVentanaCriterios();
         mainLayout.Attach(botonCriterios, 7, 0, 1, 1);
 
-        mainLayout.Attach(songsListView, 0, 1, 1, 1);
+        mainLayout.Attach(songsListView, 1, 1, 1, 1);
 
         DeleteEvent += delegate { Application.Quit(); };
 

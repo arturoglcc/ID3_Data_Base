@@ -11,13 +11,13 @@ namespace MusicApp.Controllers
         private List<Buscador.Criterio> criteriosBusqueda; // Lista de criterios de búsqueda
         
 
-        public MainBarController(MainView vista, SongsListView vistaCanciones)
+        public MainBarController(MainView vista, SongsListView vistaCanciones, DisplayerView displayerView)
         {
             this.vista = vista;
             criteriosBusqueda = new List<Buscador.Criterio>();
             rutaMinado = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
             vista.ActualizarTitulo(rutaMinado);
-            songsListController = new SongsListController(vistaCanciones);
+            songsListController = new SongsListController(vistaCanciones, displayerView);
         }
 
         public string GetRutaMinado()

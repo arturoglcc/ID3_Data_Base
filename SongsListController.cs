@@ -8,12 +8,14 @@ namespace MusicApp.Controllers
     {
         private SongsListView viewer;
         private List<Cancion> canciones;
+        private DisplayerController displayerCon;
 
-        public SongsListController(SongsListView viewer)
+        public SongsListController(SongsListView viewer, DisplayerView displayerView)
         {
             this.viewer = viewer;
             canciones = new List<Cancion>();
-        }
+            displayerCon = new DisplayerController(displayerView);
+         }
 
         // Método para recibir la lista de canciones y generar y mostrar los botones en la vista
         public void CargarCanciones(List<Cancion> canciones)
@@ -35,6 +37,7 @@ namespace MusicApp.Controllers
         private void OnCancionSeleccionada(Cancion cancion)
         {
             Console.WriteLine($"Botón de canción seleccionado: {cancion.Titulo}");
+            displayerCon.CargarCancion(cancion);
         }
     }
 }

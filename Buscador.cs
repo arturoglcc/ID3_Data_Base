@@ -109,7 +109,9 @@ public class Buscador {
 }
 
 // Clase auxiliar para representar una canción
-public class Cancion {
+
+public class Cancion
+{
     public int Id { get; set; }
     public string Titulo { get; set; }
     public string Album { get; set; }
@@ -119,7 +121,14 @@ public class Cancion {
     public int Pista { get; set; }
     public string Path { get; set; }
 
-    public Cancion() {
+    // Nuevos campos para grupos
+    public string? FechaInicioGrupo { get; set; }  // Puede ser null
+    public string? FechaFinGrupo { get; set; }     // Puede ser null
+    public List<string>? Integrantes { get; set; } // Lista de integrantes, puede ser null
+
+    // Constructor por defecto con valores predefinidos
+    public Cancion()
+    {
         Titulo = "Unknown";
         Album = "Unknown";
         Intérprete = "Unknown";
@@ -127,5 +136,24 @@ public class Cancion {
         Genero = "Unknown";
         Pista = 1;
         Path = "Ruta no disponible";
+        FechaInicioGrupo = null;  // Por defecto, null
+        FechaFinGrupo = null;     // Por defecto, null
+        Integrantes = null;       // Por defecto, null
+    }
+
+    // Constructor opcional para pasar parámetros, incluyendo los nuevos campos
+    public Cancion(string titulo, string album, string intérprete, int año, string genero, int pista, string path, 
+                   string? fechaInicioGrupo = null, string? fechaFinGrupo = null, List<string>? integrantes = null)
+    {
+        Titulo = titulo;
+        Album = album;
+        Intérprete = intérprete;
+        Año = año;
+        Genero = genero;
+        Pista = pista;
+        Path = path;
+        FechaInicioGrupo = fechaInicioGrupo;
+        FechaFinGrupo = fechaFinGrupo;
+        Integrantes = integrantes;
     }
 }
