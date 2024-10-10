@@ -1,5 +1,7 @@
 using Gtk;
 using System;
+using System.Diagnostics;  // Para Process
+using System.Runtime.InteropServices;  // Para OSPlatform
 
 public class DisplayerView : Grid
 {
@@ -11,6 +13,7 @@ public class DisplayerView : Grid
     private Entry entryPista;
     private Button botonEditar;
     private Button botonGuardar;
+    private Button botonReproducir;
 
     // Campos adicionales para datos del grupo
     private Entry entryIntegrantes;
@@ -19,9 +22,12 @@ public class DisplayerView : Grid
 
     // Contenedor principal para controlar la visibilidad
     private Grid gridContainer;
+    private DisplayerController displayerController;
+    // Ruta del archivo MP3 de la canción seleccionada
 
-    public DisplayerView() : base()
-    {
+    public DisplayerView(DisplayerController displayerController) : base() {
+
+        this.displayerController = displayerController;
         // Inicialización del contenedor principal
         gridContainer = new Grid();
         gridContainer.RowSpacing = 5;
@@ -29,15 +35,8 @@ public class DisplayerView : Grid
 
         Console.WriteLine("Inicializando DisplayerView");
         // Configuración de la vista utilizando Grid
-        SetUpWidgets();
 
-        // Ocultar todos los widgets al inicio
-        SetVisibility(false);
         Console.WriteLine("SetVisibility(false) llamado en el constructor");
-    }
-
-    private void SetUpWidgets()
-    {
         // Campos básicos de la canción
         labelTitulo = new Label("Detalles de la Canción:");
         gridContainer.Attach(labelTitulo, 0, 0, 2, 1);  // Ocupa 2 columnas
@@ -64,6 +63,11 @@ public class DisplayerView : Grid
         botonGuardar.Sensitive = false; // Deshabilitado hasta que se haga clic en "Editar"
         botonGuardar.Clicked += OnGuardarClicked;
 
+        // Botón para reproducir la canción
+        botonReproducir = new Button("Reproducir");
+        this.Attach(botonReproducir, 0, 10, 2, 1);  // Ocupa dos columnas
+        botonReproducir.Clicked += OnReproducirClicked;
+
         // Agregar el contenedor principal al DisplayerView
         this.Attach(gridContainer, 0, 0, 1, 1);
 
@@ -85,7 +89,6 @@ public class DisplayerView : Grid
 
     // Método para actualizar la visibilidad de los elementos
     private void SetVisibility(bool visible) {
-        Console.WriteLine($"SetVisibility llamado con visible={visible}");
         gridContainer.Visible = visible;  // Controla la visibilidad de todos los elementos
 
         // Controlar la visibilidad específica de los elementos si es necesario
@@ -125,12 +128,36 @@ public class DisplayerView : Grid
 
         // Habilitar el botón de "Guardar"
         botonGuardar.Sensitive = true;
+        botonEditar.Sensitive = false;
     }
 
-    // Evento al hacer clic en "Guardar"
     private void OnGuardarClicked(object sender, EventArgs e)
-    {
-        // Aquí iría la lógica para guardar los cambios
+        {
+        // Rehabilitar el botón "Editar" para que se pueda volver a editar después de guardar
+        botonEditar.Sensitive = true;
+
+        // Capturar los datos editados por el usuario
+        string nuevoTitulo = entryTitulo.Text;
+        string nuevoAño = entryAño.Text;
+        string nuevoGenero = entryGenero.Text;
+        string nuevoPerformer = entryPerformer.Text;
+        string nuevaPista = entryPista.Text;
+        string? nuevosIntegrantes = entryIntegrantes.Visible ? entryIntegrantes.Text : null;
+        string? nuevaFechaInicio = entryFechaInicio.Visible ? entryFechaInicio.Text : null;
+        string? nuevaFechaFin = entryFechaFin.Visible ? entryFechaFin.Text : null;
+
+        // Enviar los datos modificados al controlador para que los procese
+        displayerController.EditarCancion(nuevoTitulo,
+                                  nuevoAño,
+                                  nuevoGenero,
+                                  nuevoPerformer,
+                                  nuevaPista,
+                                  nuevosIntegrantes,
+                                  nuevaFechaInicio,
+                                  nuevaFechaFin);
+
+        // Deshabilitar el botón "Guardar" y llamar inmediatamente al método NoEditar
+        NoEditar(sender, e); // Llamada directa a NoEditar para deshabilitar los campos
     }
 
     // Método para mostrar los datos de la canción seleccionada
@@ -168,5 +195,29 @@ public class DisplayerView : Grid
         // Asegurarse de que el Displayer se muestre automáticamente
         Console.WriteLine($"Mostrando en pantalla los datos de: {cancion.Titulo}");
         this.ShowAll();  // Actualiza y muestra los cambios en la interfaz
+    }
+
+        private void NoEditar(object sender, EventArgs e)
+    {
+        // Habilitar los campos para que sean editables
+        entryTitulo.Sensitive = false;
+        entryAño.Sensitive = false;
+        entryGenero.Sensitive = false;
+        entryPerformer.Sensitive = false;
+        entryPista.Sensitive = false;
+
+        // Habilitar también los campos del grupo si son visibles
+        if (entryIntegrantes.Visible)
+        {
+            entryIntegrantes.Sensitive = false;
+            entryFechaInicio.Sensitive = false;
+            entryFechaFin.Sensitive = false;
+        }
+        botonGuardar.Sensitive = false;
+    }
+
+    private void OnReproducirClicked(object sender, EventArgs e)
+    {
+        displayerController.ReproducirCancion();  // Llamar al método en el controlador
     }
 }

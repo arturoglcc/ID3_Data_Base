@@ -1,42 +1,38 @@
 using System;
 using System.Collections.Generic;
+using Gtk;
 using Microsoft.Data.Sqlite;
 
 namespace MusicApp.Controllers
 {
-    public class MainBarController {
+    public class MainBarController
+    {
         private SongsListController songsListController;
         private string rutaMinado; // Ruta donde se hará el minado
-        private MainView vista;
-        private List<Buscador.Criterio> criteriosBusqueda; // Lista de criterios de búsqueda
-        
+        public MainBarView vista;
+        private MainView mainView;
+        private List<Buscador.Criterio> criteriosBusqueda;
 
-        public MainBarController(MainView vista, SongsListView vistaCanciones, DisplayerView displayerView)
+        public MainBarController(SongsListView vistaCanciones, DisplayerController displayercon, MainView mainView)
         {
-            this.vista = vista;
+            this.mainView = mainView;
+            vista = new MainBarView(this);  // Pasar la referencia del controlador a la vista
             criteriosBusqueda = new List<Buscador.Criterio>();
             rutaMinado = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
-            vista.ActualizarTitulo(rutaMinado);
-            songsListController = new SongsListController(vistaCanciones, displayerView);
-        }
-
-        public string GetRutaMinado()
-        {
-            return rutaMinado;
-        }
-
-                // Método para obtener la lista de criterios de búsqueda
-        public List<Buscador.Criterio> ObtenerCriterios()
-        {
-            return criteriosBusqueda;
+            mainView.ActualizarTitulo(rutaMinado);
+            songsListController = new SongsListController(vistaCanciones, displayercon, mainView);
         }
 
         // Seleccionar la ruta de minado
-        public void SeleccionarRutaMinado(string nuevaRuta)
+        public void SeleccionarRuta()
         {
-            rutaMinado = nuevaRuta;
-            Console.WriteLine($"Ruta seleccionada: {rutaMinado}");
-            vista.ActualizarTitulo(rutaMinado);
+            FileChooserDialog fileChooser = new FileChooserDialog("Selecciona una carpeta", null, FileChooserAction.SelectFolder, "Cancel", ResponseType.Cancel, "Select", ResponseType.Accept);
+            if (fileChooser.Run() == (int)ResponseType.Accept)
+            {
+                rutaMinado = fileChooser.Filename;
+                mainView.ActualizarTitulo(rutaMinado);
+            }
+            fileChooser.Destroy();
         }
 
         // Ejecutar el minado
@@ -56,58 +52,19 @@ namespace MusicApp.Controllers
         }
 
         // Agregar criterio
-        public void AgregarCriterio(string etiqueta, string valor, bool esExclusivo)
+        public void AgregarCriterio(string etiqueta, string valor)
         {
             if (!string.IsNullOrEmpty(etiqueta) && !string.IsNullOrEmpty(valor))
             {
                 string columnaBaseDatos = TransformarEtiquetaAColumna(etiqueta);
-                criteriosBusqueda.Add(new Buscador.Criterio(columnaBaseDatos, valor, esExclusivo));
-                Console.WriteLine($"Criterio agregado: {etiqueta} = {valor}, Exclusivo: {esExclusivo}");
-            }
-            else
-            {
-                Console.WriteLine("Debe proporcionar una etiqueta y un valor.");
-            }
-        }
-
-        // Eliminar criterio
-        public void EliminarCriterio(int index)
-        {
-            if (index >= 0 && index < criteriosBusqueda.Count)
-            {
-                Console.WriteLine($"Criterio eliminado: {criteriosBusqueda[index].Nombre}");
-                criteriosBusqueda.RemoveAt(index);
-            }
-            else
-            {
-                Console.WriteLine("Índice de criterio inválido.");
-            }
-        }
-
-        // Transformar etiqueta a columna de base de datos
-        private string TransformarEtiquetaAColumna(string etiquetaUsuario)
-        {
-            switch (etiquetaUsuario.ToLower())
-            {
-                case "título":
-                    return "title";
-                case "género":
-                    return "genre";
-                case "intérprete":
-                    return "performer";
-                case "álbum":
-                    return "id_album";
-                case "año":
-                    return "year";
-                case "pista":
-                    return "track";
-                default:
-                    throw new ArgumentException($"Etiqueta no reconocida: {etiquetaUsuario}");
+                criteriosBusqueda.Add(new Buscador.Criterio(columnaBaseDatos, valor, false)); // Especifica exclusividad si es necesario
+                Console.WriteLine($"Criterio agregado: {etiqueta} = {valor}");
             }
         }
 
         // Ejecutar búsqueda
-        public void EjecutarBusqueda() {
+        public void EjecutarBusqueda()
+        {
             Buscador buscador = new Buscador();
             List<Cancion> resultados = buscador.Buscar(criteriosBusqueda);
             Console.WriteLine($"Se encontraron {resultados.Count} canciones.");
@@ -115,21 +72,25 @@ namespace MusicApp.Controllers
             criteriosBusqueda.Clear();
         }
 
-     // Método para eliminar los criterios seleccionados
-        public void EliminarCriteriosSeleccionados(List<int> indicesSeleccionados)
+        // Mostrar ventana de criterios
+        public void MostrarCriterios()
         {
-            indicesSeleccionados.Sort((a, b) => b.CompareTo(a));  // Ordenar en orden descendente para evitar problemas al eliminar
-
-            foreach (int indice in indicesSeleccionados)
-            {
-                if (indice >= 0 && indice < criteriosBusqueda.Count)
-                {
-                    Console.WriteLine($"Criterio eliminado: {criteriosBusqueda[indice].Nombre}");
-                    criteriosBusqueda.RemoveAt(indice);
-                }
-            }
+            // Lógica para mostrar la ventana de criterios
         }
 
-        
+        // Transformar etiqueta a columna de base de datos
+        private string TransformarEtiquetaAColumna(string etiquetaUsuario)
+        {
+            switch (etiquetaUsuario.ToLower())
+            {
+                case "título": return "title";
+                case "género": return "genre";
+                case "intérprete": return "performer";
+                case "álbum": return "id_album";
+                case "año": return "year";
+                case "pista": return "track";
+                default: throw new ArgumentException($"Etiqueta no reconocida: {etiquetaUsuario}");
+            }
+        }
     }
 }

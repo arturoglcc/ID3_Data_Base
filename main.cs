@@ -2,17 +2,14 @@ using System;
 using Microsoft.Data.Sqlite;
 using Gtk;
 
-class Program
-{
-    static void Main(string[] args)
-    {
+class Program {
+    static void Main(string[] args) {
         // Ruta predeterminada para minado (por ejemplo, la carpeta de Música del usuario)
         string rutaMusicaUsuario = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic));
 
         // Conectar a la base de datos SQLite
         string connectionString = "Data Source=music_library.db;";
-        using (SqliteConnection connection = new SqliteConnection(connectionString))
-        {
+        using (SqliteConnection connection = new SqliteConnection(connectionString)) {
             connection.Open();
 
             // Crear una instancia de Minero

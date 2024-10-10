@@ -47,7 +47,6 @@ public class Buscador {
                     Pista = reader["track"] != DBNull.Value ? Convert.ToInt32(reader["track"]) : 1,
                     Path = reader["path"] != DBNull.Value ? reader["path"]?.ToString() ?? "Ruta no disponible" : "Ruta no disponible"
                 };
-
                 resultados.Add(cancion);
             }
         }
@@ -155,5 +154,28 @@ public class Cancion
         FechaInicioGrupo = fechaInicioGrupo;
         FechaFinGrupo = fechaFinGrupo;
         Integrantes = integrantes;
+    }
+
+        // Método ToString para ver los datos de la canción
+    public override string ToString() {
+        // Datos básicos
+        string infoCancion = $"ID: {Id}\n" +
+                             $"Título: {Titulo}\n" +
+                             $"Álbum: {Album}\n" +
+                             $"Intérprete: {Intérprete}\n" +
+                             $"Año: {Año}\n" +
+                             $"Género: {Genero}\n" +
+                             $"Pista: {Pista}\n" +
+                             $"Path: {Path}\n";
+
+        // Datos del grupo (si existen)
+        if (Integrantes != null && Integrantes.Count > 0) {
+            string integrantes = string.Join(", ", Integrantes);
+            infoCancion += $"Integrantes del Grupo: {integrantes}\n";
+            infoCancion += $"Fecha de Inicio del Grupo: {FechaInicioGrupo ?? "No especificada"}\n";
+            infoCancion += $"Fecha de Fin del Grupo: {FechaFinGrupo ?? "No especificada"}\n";
+        }
+
+        return infoCancion;
     }
 }

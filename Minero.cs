@@ -32,10 +32,23 @@ class Minero
 
     // Función que mina la carpeta en busca de archivos MP3 y extrae etiquetas ID3v2.4
     public void MinarDirectorio(SqliteConnection connection, string ruta) {
+        BorrarDatosBaseDeDatos(connection);
+
         foreach (string archivo in Directory.EnumerateFiles(ruta, "*.mp3", SearchOption.AllDirectories)) {
             try {
+                // Reemplazar espacios en la ruta por barra baja
+                string rutaTransformada = archivo.Replace(" ", "_");
+
+                // Renombrar el archivo si la ruta se modificó
+                if (rutaTransformada != archivo)
+                {
+                    System.IO.File.Move(archivo, rutaTransformada);  // Usar System.IO.File para desambiguar
+                    Console.WriteLine($"Archivo renombrado: {archivo} -> {rutaTransformada}");
+
+                    ActualizarPathEnBaseDeDatos(connection, archivo, rutaTransformada);
+                }
                 // Desambiguar usando el namespace completo para TagLib.File
-                TagLib.File file = TagLib.File.Create(archivo);
+                TagLib.File file = TagLib.File.Create(rutaTransformada);
 
                 // Extraer etiquetas ID3v2.4 con valores por defecto
                 string performer = file.Tag.FirstPerformer ?? "Unknown";
@@ -43,7 +56,7 @@ class Minero
                 string album = file.Tag.Album ?? "Unknown";
                 
                 // Usar el año actual o la fecha de creación del archivo si no hay año en las etiquetas
-                int year = ObtenerFechaDeArchivo(archivo);
+                int year = ObtenerFechaDeArchivo(rutaTransformada);
 
                 string genre = file.Tag.FirstGenre ?? "Unknown";
                 
@@ -52,10 +65,10 @@ class Minero
 
                 // Insertar performers y álbum si no están en la base de datos
                 int id_performer = InsertarPerformerSiNoExiste(connection, performer, file.Tag.AlbumArtists.Length > 1 ? 1 : 0); // 1 = Grupo, 0 = Persona
-                int id_album = InsertarAlbumSiNoExiste(connection, album, year, archivo);
+                int id_album = InsertarAlbumSiNoExiste(connection, album, year, rutaTransformada);
                 
                 // Insertar la canción (rola) si no existe
-                InsertarRolaSiNoExiste(connection, title, id_performer, id_album, archivo, track, year, genre);
+                InsertarRolaSiNoExiste(connection, title, id_performer, id_album, rutaTransformada, track, year, genre);
             }
             catch (Exception ex)
             {
@@ -63,6 +76,26 @@ class Minero
             }
         }
     }
+
+    // Método para actualizar el path en la base de datos
+private void ActualizarPathEnBaseDeDatos(SqliteConnection connection, string rutaAntigua, string rutaNueva)
+{
+    try
+    {
+        string query = "UPDATE rolas SET path = @rutaNueva WHERE path = @rutaAntigua";
+        using (SqliteCommand command = new SqliteCommand(query, connection))
+        {
+            command.Parameters.AddWithValue("@rutaNueva", rutaNueva);
+            command.Parameters.AddWithValue("@rutaAntigua", rutaAntigua);
+            command.ExecuteNonQuery();
+        }
+        Console.WriteLine($"Base de datos actualizada: {rutaAntigua} -> {rutaNueva}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error al actualizar la base de datos: {ex.Message}");
+    }
+}
 
     // Función para insertar un performer (persona o grupo) si no existe
     static int InsertarPerformerSiNoExiste(SqliteConnection connection, string performer, int id_type)
@@ -133,7 +166,7 @@ class Minero
 
         object? result = commandCheck.ExecuteScalar();
         if (result != null) {
-            Console.WriteLine($"La rola '{title}' ya existe en la base de datos.");
+            Console.WriteLine($"La rola '{path}' ya existe en la base de datos.");
             return; // La rola ya existe, no hacer nada
         }
 
@@ -160,4 +193,48 @@ class Minero
             return DateTime.Now.Year; // Si falla obtener la fecha de creación, usar el año actual
         }
     }
+
+
+private void BorrarDatosBaseDeDatos(SqliteConnection connection)
+{
+    try
+    {
+        // Deshabilitar las restricciones de claves foráneas
+        using (SqliteCommand disableForeignKeysCommand = new SqliteCommand("PRAGMA foreign_keys = OFF;", connection))
+        {
+            disableForeignKeysCommand.ExecuteNonQuery();
+        }
+
+        // Borrar las tablas relevantes
+        string[] tablas = { "in_group", "rolas", "performers", "albums", "persons", "groups" };
+
+        foreach (var tabla in tablas)
+        {
+            string query = $"DELETE FROM {tabla}";
+            using (SqliteCommand command = new SqliteCommand(query, connection))
+            {
+                command.ExecuteNonQuery();
+            }
+        }
+
+        // Liberar espacio
+        using (SqliteCommand vacuumCommand = new SqliteCommand("VACUUM;", connection))
+        {
+            vacuumCommand.ExecuteNonQuery();
+        }
+
+        // Habilitar de nuevo las restricciones de claves foráneas
+        using (SqliteCommand enableForeignKeysCommand = new SqliteCommand("PRAGMA foreign_keys = ON;", connection))
+        {
+            enableForeignKeysCommand.ExecuteNonQuery();
+        }
+
+        Console.WriteLine("Se han borrado los datos de la base de datos y el espacio ha sido liberado.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error al borrar los datos de la base de datos: {ex.Message}");
+    }
+}
+
 }
