@@ -44,7 +44,6 @@ using Gtk;
             Console.WriteLine($"Botón de canción seleccionado: {cancion.Titulo}");
             mainView.MostrarDetallesCancion(cancion);
             displayerCon.CargarCancion(cancion);
-            //Console.Write(cancion.ToString());
         }
     }
 }
