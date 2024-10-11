@@ -12,4 +12,5 @@ aSD.pub
 # Ignorar archivos temporales o generados por el sistema operativo
 *.tmp
 *.log
+*.swp
 
