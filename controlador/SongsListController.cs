@@ -26,17 +26,11 @@ using Gtk;
         public void CargarCanciones(List<Cancion> canciones)
         {
             this.canciones = canciones;
-            viewer.LimpiarVista();  // Limpiar la vista actual antes de agregar nuevos botones
-
-            foreach (var cancion in canciones)
-            {
-                Button botonCancion = new Button(cancion.Titulo);
-                botonCancion.Clicked += (sender, e) => OnCancionSeleccionada(cancion);
-                viewer.MostrarBoton(botonCancion);  // Enviar el botón a la vista para mostrarlo
-            }
-
-            viewer.ActualizarVista();
+            viewer.LimpiarVista();
+            viewer.CargarCancionesConEncabezado(canciones, OnCancionSeleccionada);
         }
+
+
 
         // Método para manejar la selección de una canción (botón clicado)
         private void OnCancionSeleccionada(Cancion cancion)

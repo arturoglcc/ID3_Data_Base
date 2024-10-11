@@ -38,10 +38,6 @@ public class DisplayerView : Grid
         gridContainer.RowSpacing = 5;
         gridContainer.ColumnSpacing = 10;
 
-        Console.WriteLine("Inicializando DisplayerView");
-        // Configuración de la vista utilizando Grid
-
-        Console.WriteLine("SetVisibility(false) llamado en el constructor");
         // Campos básicos de la canción
         labelTitulo = new Label("Detalles de la Canción:");
         gridContainer.Attach(labelTitulo, 0, 0, 2, 1);  // Ocupa 2 columnas
