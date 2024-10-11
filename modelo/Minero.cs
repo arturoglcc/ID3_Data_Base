@@ -46,9 +46,8 @@ class Minero
                 {
                     System.IO.File.Move(archivo, rutaTransformada);  // Usar System.IO.File para desambiguar
                     Console.WriteLine($"Archivo renombrado: {archivo} -> {rutaTransformada}");
-
-                    ActualizarPathEnBaseDeDatos(connection, archivo, rutaTransformada);
                 }
+                ActualizarPathEnBaseDeDatos(connection, archivo, rutaTransformada);
                 // Desambiguar usando el namespace completo para TagLib.File
                 TagLib.File file = TagLib.File.Create(rutaTransformada);
 

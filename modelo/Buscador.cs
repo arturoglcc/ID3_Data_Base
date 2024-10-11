@@ -39,17 +39,16 @@ public class Buscador {
             SQLiteDataReader reader = command.ExecuteReader();
             while (reader.Read()) {
                 // Leer los resultados y manejar posibles valores nulos
-                Cancion cancion = new Cancion
-                {
-                    Id = reader["id_rola"] != DBNull.Value ? Convert.ToInt32(reader["id_rola"]) : 0,
-                    Titulo = reader["title"] != DBNull.Value ? reader["title"]?.ToString() ?? "Unknown" : "Unknown",
-                    Album = reader["name"] != DBNull.Value ? reader["name"]?.ToString() ?? "Unknown" : "Unknown",
-                    Intérprete = reader["performer"] != DBNull.Value ? reader["performer"]?.ToString() ?? "Unknown" : "Unknown",
-                    Año = reader["year"] != DBNull.Value ? Convert.ToInt32(reader["year"]) : ObtenerFechaDeArchivo(reader["path"]?.ToString()),
-                    Genero = reader["genre"] != DBNull.Value ? reader["genre"]?.ToString() ?? "Unknown" : "Unknown",
-                    Pista = reader["track"] != DBNull.Value ? Convert.ToInt32(reader["track"]) : 1,
-                    Path = reader["path"] != DBNull.Value ? reader["path"]?.ToString() ?? "Ruta no disponible" : "Ruta no disponible"
-                };
+                Cancion cancion = new Cancion(
+                    reader["title"] != DBNull.Value ? reader["title"]?.ToString() ?? "Unknown" : "Unknown",
+                    reader["name"] != DBNull.Value ? reader["name"]?.ToString() ?? "Unknown" : "Unknown",
+                    reader["performer"] != DBNull.Value ? reader["performer"]?.ToString() ?? "Unknown" : "Unknown",
+                    reader["year"] != DBNull.Value ? Convert.ToInt32(reader["year"]) : ObtenerFechaDeArchivo(reader["path"]?.ToString()),
+                    reader["genre"] != DBNull.Value ? reader["genre"]?.ToString() ?? "Unknown" : "Unknown",
+                    reader["track"] != DBNull.Value ? Convert.ToInt32(reader["track"]) : 1,
+                    reader["path"] != DBNull.Value ? reader["path"]?.ToString() ?? "Ruta no disponible" : "Ruta no disponible", // Usar el path correcto
+                    false
+                );
                 resultados.Add(cancion);
             }
         }
@@ -127,21 +126,6 @@ public class Cancion
     public string? FechaFinGrupo { get; set; }     // Puede ser null
     public List<string>? Integrantes { get; set; } // Lista de integrantes, puede ser null
     // Constructor por defecto con valores predefinidos
-    public Cancion()
-    {
-        Titulo = "Unknown";
-        Album = "Unknown";
-        Intérprete = "Unknown";
-        Año = DateTime.Now.Year;
-        Genero = "Unknown";
-        Pista = 1;
-        Path = "Ruta no disponible";
-        EsGrupo = false; // Valor por defecto
-        FechaInicioGrupo = null;  
-        FechaFinGrupo = null;    
-        Integrantes = null;      
-        ImagenPortada = ObtenerImagenPortada(Path);
-    }
 
         // Constructor opcional para pasar parámetros
     public Cancion(string titulo, string album, string intérprete, int año, string genero, int pista, string path, bool esGrupo,
@@ -158,15 +142,15 @@ public class Cancion
         FechaInicioGrupo = fechaInicioGrupo;
         FechaFinGrupo = fechaFinGrupo;
         Integrantes = integrantes;
-        ImagenPortada = imagenPortada ?? ObtenerImagenPorDefecto(); // Usar la imagen proporcionada o asignar la de por defecto
+        ImagenPortada = ObtenerImagenPortada(Path); // Usar la imagen proporcionada o asignar la de por defecto
     }
 
     // Método para intentar obtener la imagen de portada de las etiquetas ID3
     private byte[] ObtenerImagenPortada(string path)
     {
         if (string.IsNullOrEmpty(path) || !File.Exists(path))
-        {
-            Console.Write("Obteniendo imagen por omision de " + path + " ");
+        {   
+            Console.Write("ruta por omision: " + path + " ");
             return ObtenerImagenPorDefecto(); // Si el archivo no existe o la ruta está vacía, usar la imagen por defecto
         }
 
@@ -183,9 +167,8 @@ public class Cancion
                 return ObtenerImagenPorDefecto(); // Si no tiene imagen, usar la imagen por defecto
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error al obtener la imagen de portada: {ex.Message}");
             return ObtenerImagenPorDefecto(); // En caso de error, usar la imagen por defecto
         }
     }

@@ -16,6 +16,7 @@ public class DisplayerView : Grid
     private Entry entryGenero;
     private Entry entryPerformer;
     private Entry entryPista;
+    private Button botonEsGrupo;
     private Button botonEditar;
     private Button botonGuardar;
     private Button botonReproducir;
@@ -29,56 +30,125 @@ public class DisplayerView : Grid
     private Grid gridContainer;
     private DisplayerController displayerController;
     private Image imagePortada;
+    private Cancion cancion = null!;
 
-    public DisplayerView(DisplayerController displayerController) : base() {
-        this.displayerController = displayerController;
+    public DisplayerView(DisplayerController displayerController) : base() 
+  {
+    this.displayerController = displayerController;
 
-        // Inicialización del contenedor principal
-        gridContainer = new Grid();
-        gridContainer.RowSpacing = 5;
-        gridContainer.ColumnSpacing = 10;
+    // Inicialización del contenedor principal
+    gridContainer = new Grid();
+    gridContainer.RowSpacing = 10;  // Espacio vertical entre filas
+    gridContainer.ColumnSpacing = 10;  // Espacio horizontal entre columnas
 
-        // Inicializar la imagen de portada
-        imagePortada = new Image(); // Inicializar Gtk.Image
-        gridContainer.Attach(imagePortada, 0, 0, 2, 1);
+    // Inicializar la imagen de portada
+    imagePortada = new Image(); 
+    gridContainer.Attach(imagePortada, 0, 0, 2, 1);  // La imagen ocupará las dos columnas en la fila 0
 
-        // Campos básicos de la canción
-        labelTitulo = new Label("Detalles de la Canción:");
-        gridContainer.Attach(labelTitulo, 0, 1, 2, 1);  // Ocupa 2 columnas
+    // Campos básicos de la canción
+    labelTitulo = new Label("Detalles de la Canción:");
+    gridContainer.Attach(labelTitulo, 0, 1, 2, 1);  // Etiqueta "Detalles de la Canción" ocupa 2 columnas
 
-        entryTitulo = CrearCampoNoEditable("Título", 1);
-        entryAño = CrearCampoNoEditable("Año", 2);
-        entryGenero = CrearCampoNoEditable("Género", 3);
-        entryPerformer = CrearCampoNoEditable("Performer", 4);
-        entryPista = CrearCampoNoEditable("Pista", 5);
+    // Título
+    Label labelTituloCancion = new Label("Título:");
+    gridContainer.Attach(labelTituloCancion, 0, 2, 1, 1);
+    entryTitulo = new Entry();
+    entryTitulo.Sensitive = false;
+    gridContainer.Attach(entryTitulo, 1, 2, 1, 1);
 
-        // Campos del grupo (inicialmente ocultos)
-        entryIntegrantes = CrearCampoNoEditable("Integrantes del Grupo", 6);
-        entryFechaInicio = CrearCampoNoEditable("Fecha de Inicio", 7);
-        entryFechaFin = CrearCampoNoEditable("Fecha de Fin", 8);
+    // Año
+    Label labelAño = new Label("Año:");
+    gridContainer.Attach(labelAño, 0, 3, 1, 1);
+    entryAño = new Entry();
+    entryAño.Sensitive = false;
+    gridContainer.Attach(entryAño, 1, 3, 1, 1);
 
-        // Botón para habilitar la edición
-        botonEditar = new Button("Editar");
-        gridContainer.Attach(botonEditar, 0, 9, 1, 1);  // Colocado en la fila 9, columna 0
-        botonEditar.Clicked += OnEditarClicked;
+    // Género
+    Label labelGenero = new Label("Género:");
+    gridContainer.Attach(labelGenero, 0, 4, 1, 1);
+    entryGenero = new Entry();
+    entryGenero.Sensitive = false;
+    gridContainer.Attach(entryGenero, 1, 4, 1, 1);
 
-        // Botón para guardar los cambios
-        botonGuardar = new Button("Guardar");
-        gridContainer.Attach(botonGuardar, 1, 9, 1, 1);  // Colocado en la fila 9, columna 1
-        botonGuardar.Sensitive = false; // Deshabilitado hasta que se haga clic en "Editar"
-        botonGuardar.Clicked += OnGuardarClicked;
+    // Performer
+    Label labelPerformer = new Label("Performer:");
+    gridContainer.Attach(labelPerformer, 0, 5, 1, 1);
+    entryPerformer = new Entry();
+    entryPerformer.Sensitive = false;
+    gridContainer.Attach(entryPerformer, 1, 5, 1, 1);
 
-        // Botón para reproducir la canción
-        botonReproducir = new Button("Reproducir");
-        this.Attach(botonReproducir, 0, 10, 2, 1);  // Ocupa dos columnas
-        botonReproducir.Clicked += OnReproducirClicked;
+    // Pista
+    Label labelPista = new Label("Pista:");
+    gridContainer.Attach(labelPista, 0, 6, 1, 1);
+    entryPista = new Entry();
+    entryPista.Sensitive = false;
+    gridContainer.Attach(entryPista, 1, 6, 1, 1);
 
-        // Agregar el contenedor principal al DisplayerView
-        this.Attach(gridContainer, 0, 0, 1, 1);
+    // Es Grupo - Botón Sí/No
+    Label labelEsGrupo = new Label("Es Grupo:");
+    gridContainer.Attach(labelEsGrupo, 0, 7, 1, 1);  // Etiqueta Es Grupo en la fila 7
+    botonEsGrupo = new Button(GetTextoEsGrupo(false));  // Inicializar con "No"
+    gridContainer.Attach(botonEsGrupo, 1, 7, 1, 1);  // Colocar en la segunda columna
+    botonEsGrupo.Clicked += OnEsGrupoClicked;  // Asociar el evento
 
-        // Ocultar todos los elementos al inicio
-        SetVisibility(false);
-    }
+    // Campos del grupo (inicialmente ocultos)
+    Label labelIntegrantes = new Label("Integrantes del Grupo:");
+    gridContainer.Attach(labelIntegrantes, 0, 8, 1, 1);
+    entryIntegrantes = new Entry();
+    entryIntegrantes.Sensitive = false;
+    gridContainer.Attach(entryIntegrantes, 1, 8, 1, 1);
+
+    Label labelFechaInicio = new Label("Fecha de Inicio:");
+    gridContainer.Attach(labelFechaInicio, 0, 9, 1, 1);
+    entryFechaInicio = new Entry();
+    entryFechaInicio.Sensitive = false;
+    gridContainer.Attach(entryFechaInicio, 1, 9, 1, 1);
+
+    Label labelFechaFin = new Label("Fecha de Fin:");
+    gridContainer.Attach(labelFechaFin, 0, 10, 1, 1);
+    entryFechaFin = new Entry();
+    entryFechaFin.Sensitive = false;
+    gridContainer.Attach(entryFechaFin, 1, 10, 1, 1);
+
+    // Botón para habilitar la edición
+    botonEditar = new Button("Editar");
+    gridContainer.Attach(botonEditar, 0, 11, 1, 1); 
+    botonEditar.Clicked += OnEditarClicked;
+
+    // Botón para guardar los cambios
+    botonGuardar = new Button("Guardar");
+    gridContainer.Attach(botonGuardar, 1, 11, 1, 1);
+    botonGuardar.Sensitive = false;
+    botonGuardar.Clicked += OnGuardarClicked;
+
+    // Botón para reproducir la canción
+    botonReproducir = new Button("Reproducir");
+    gridContainer.Attach(botonReproducir, 0, 12, 2, 1);
+    botonReproducir.Clicked += OnReproducirClicked;
+
+    // Agregar el contenedor principal al DisplayerView
+    this.Attach(gridContainer, 0, 0, 1, 1);
+
+    // Ocultar todos los elementos al inicio
+    SetVisibility(false);
+}
+
+// Método para cambiar el texto del botón Es Grupo
+private string GetTextoEsGrupo(bool esGrupo)
+{
+    return esGrupo ? "Sí" : "No";
+}
+
+// Evento cuando se hace clic en el botón Es Grupo
+private void OnEsGrupoClicked(object sender, EventArgs e)
+{
+    // Alternar el valor de EsGrupo en la canción
+    cancion.EsGrupo = !cancion.EsGrupo;
+
+    // Actualizar el texto del botón
+    botonEsGrupo.Label = GetTextoEsGrupo(cancion.EsGrupo);
+}
+
 
     // Método para crear un campo no editable
     private Entry CrearCampoNoEditable(string labelText, int row)
@@ -167,8 +237,14 @@ public class DisplayerView : Grid
 
     // Método para mostrar los datos de la canción seleccionada
     public void MostrarDatosCancion(Cancion cancion, bool mostrarDatosGrupo) {
+        this.cancion = cancion;
         Console.WriteLine($"MostrarDatosCancion llamado para: {cancion.Titulo}");
         // Cargar la imagen de portada desde el byte[]
+
+        // Tamaño deseado para la imagen
+    const int imageWidth = 326;
+    const int imageHeight = 326;
+
     try
     {
         if (cancion.ImagenPortada != null && cancion.ImagenPortada.Length > 0)
@@ -177,7 +253,11 @@ public class DisplayerView : Grid
             using (var loader = new Gdk.PixbufLoader(cancion.ImagenPortada))
             {
                 loader.Close();  // Es necesario cerrar el loader para procesar la imagen
-                imagePortada.Pixbuf = loader.Pixbuf;  // Asignar la imagen cargada
+                var pixbuf = loader.Pixbuf;
+                
+                // Redimensionar la imagen
+                var scaledPixbuf = pixbuf.ScaleSimple(imageWidth, imageHeight, Gdk.InterpType.Bilinear);
+                imagePortada.Pixbuf = scaledPixbuf;  // Asignar la imagen redimensionada
             }
         }
         else
