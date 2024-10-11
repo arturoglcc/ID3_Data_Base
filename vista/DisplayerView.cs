@@ -28,19 +28,23 @@ public class DisplayerView : Grid
     // Contenedor principal para controlar la visibilidad
     private Grid gridContainer;
     private DisplayerController displayerController;
-    // Ruta del archivo MP3 de la canción seleccionada
+    private Image imagePortada;
 
     public DisplayerView(DisplayerController displayerController) : base() {
-
         this.displayerController = displayerController;
+
         // Inicialización del contenedor principal
         gridContainer = new Grid();
         gridContainer.RowSpacing = 5;
         gridContainer.ColumnSpacing = 10;
 
+        // Inicializar la imagen de portada
+        imagePortada = new Image(); // Inicializar Gtk.Image
+        gridContainer.Attach(imagePortada, 0, 0, 2, 1);
+
         // Campos básicos de la canción
         labelTitulo = new Label("Detalles de la Canción:");
-        gridContainer.Attach(labelTitulo, 0, 0, 2, 1);  // Ocupa 2 columnas
+        gridContainer.Attach(labelTitulo, 0, 1, 2, 1);  // Ocupa 2 columnas
 
         entryTitulo = CrearCampoNoEditable("Título", 1);
         entryAño = CrearCampoNoEditable("Año", 2);
@@ -164,6 +168,31 @@ public class DisplayerView : Grid
     // Método para mostrar los datos de la canción seleccionada
     public void MostrarDatosCancion(Cancion cancion, bool mostrarDatosGrupo) {
         Console.WriteLine($"MostrarDatosCancion llamado para: {cancion.Titulo}");
+        // Cargar la imagen de portada desde el byte[]
+    try
+    {
+        if (cancion.ImagenPortada != null && cancion.ImagenPortada.Length > 0)
+        {
+            // Crear un PixbufLoader para cargar el byte[] como imagen
+            using (var loader = new Gdk.PixbufLoader(cancion.ImagenPortada))
+            {
+                loader.Close();  // Es necesario cerrar el loader para procesar la imagen
+                imagePortada.Pixbuf = loader.Pixbuf;  // Asignar la imagen cargada
+            }
+        }
+        else
+        {
+            // Si no hay imagen, mostrar una imagen por defecto
+            imagePortada.Pixbuf = new Gdk.Pixbuf("ruta/a/imagen/default.png");
+        }
+    }
+    catch (GLib.GException ex)
+    {
+        Console.WriteLine($"Error al cargar la imagen: {ex.Message}");
+        // Mostrar la imagen por defecto en caso de error
+        imagePortada.Pixbuf = new Gdk.Pixbuf("ruta/a/imagen/default.png");
+    }
+
         // Actualizar los campos con los datos de la canción
         entryTitulo.Text = cancion.Titulo;
         entryAño.Text = cancion.Año.ToString();
@@ -193,8 +222,6 @@ public class DisplayerView : Grid
         // Hacer visibles todos los campos al seleccionar una canción
         SetVisibility(true);
 
-        // Asegurarse de que el Displayer se muestre automáticamente
-        Console.WriteLine($"Mostrando en pantalla los datos de: {cancion.Titulo}");
         this.ShowAll();  // Actualiza y muestra los cambios en la interfaz
     }
 

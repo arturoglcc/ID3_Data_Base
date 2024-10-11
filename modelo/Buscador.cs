@@ -3,6 +3,7 @@ namespace MusicApp.Modelo {
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using System.Drawing;
 
 public class Buscador {
     private string connectionString = "Data Source=music_library.db;Version=3;";
@@ -109,8 +110,6 @@ public class Buscador {
     }
 }
 
-// Clase auxiliar para representar una canción
-
 public class Cancion
 {
     public int Id { get; set; }
@@ -121,12 +120,12 @@ public class Cancion
     public string Genero { get; set; }
     public int Pista { get; set; }
     public string Path { get; set; }
-
+    public bool EsGrupo { get; set; } // Nueva propiedad booleana
+    public byte[]? ImagenPortada { get; set; } // Propiedad para la imagen de portada
     // Nuevos campos para grupos
     public string? FechaInicioGrupo { get; set; }  // Puede ser null
     public string? FechaFinGrupo { get; set; }     // Puede ser null
     public List<string>? Integrantes { get; set; } // Lista de integrantes, puede ser null
-
     // Constructor por defecto con valores predefinidos
     public Cancion()
     {
@@ -137,14 +136,16 @@ public class Cancion
         Genero = "Unknown";
         Pista = 1;
         Path = "Ruta no disponible";
-        FechaInicioGrupo = null;  // Por defecto, null
-        FechaFinGrupo = null;     // Por defecto, null
-        Integrantes = null;       // Por defecto, null
+        EsGrupo = false; // Valor por defecto
+        FechaInicioGrupo = null;  
+        FechaFinGrupo = null;    
+        Integrantes = null;      
+        ImagenPortada = ObtenerImagenPortada(Path);
     }
 
-    // Constructor opcional para pasar parámetros, incluyendo los nuevos campos
-    public Cancion(string titulo, string album, string intérprete, int año, string genero, int pista, string path, 
-                   string? fechaInicioGrupo = null, string? fechaFinGrupo = null, List<string>? integrantes = null)
+        // Constructor opcional para pasar parámetros
+    public Cancion(string titulo, string album, string intérprete, int año, string genero, int pista, string path, bool esGrupo,
+                   string? fechaInicioGrupo = null, string? fechaFinGrupo = null, List<string>? integrantes = null, byte[]? imagenPortada = null)
     {
         Titulo = titulo;
         Album = album;
@@ -153,32 +154,80 @@ public class Cancion
         Genero = genero;
         Pista = pista;
         Path = path;
+        EsGrupo = esGrupo;
         FechaInicioGrupo = fechaInicioGrupo;
         FechaFinGrupo = fechaFinGrupo;
         Integrantes = integrantes;
+        ImagenPortada = imagenPortada ?? ObtenerImagenPorDefecto(); // Usar la imagen proporcionada o asignar la de por defecto
     }
 
-        // Método ToString para ver los datos de la canción
-    public override string ToString() {
-        // Datos básicos
-        string infoCancion = $"ID: {Id}\n" +
-                             $"Título: {Titulo}\n" +
-                             $"Álbum: {Album}\n" +
-                             $"Intérprete: {Intérprete}\n" +
-                             $"Año: {Año}\n" +
-                             $"Género: {Genero}\n" +
-                             $"Pista: {Pista}\n" +
-                             $"Path: {Path}\n";
-
-        // Datos del grupo (si existen)
-        if (Integrantes != null && Integrantes.Count > 0) {
-            string integrantes = string.Join(", ", Integrantes);
-            infoCancion += $"Integrantes del Grupo: {integrantes}\n";
-            infoCancion += $"Fecha de Inicio del Grupo: {FechaInicioGrupo ?? "No especificada"}\n";
-            infoCancion += $"Fecha de Fin del Grupo: {FechaFinGrupo ?? "No especificada"}\n";
+    // Método para intentar obtener la imagen de portada de las etiquetas ID3
+    private byte[] ObtenerImagenPortada(string path)
+    {
+        if (string.IsNullOrEmpty(path) || !File.Exists(path))
+        {
+            Console.Write("Obteniendo imagen por omision de " + path + " ");
+            return ObtenerImagenPorDefecto(); // Si el archivo no existe o la ruta está vacía, usar la imagen por defecto
         }
 
-        return infoCancion;
+        try
+        {
+            var archivo = TagLib.File.Create(path); // Cargar el archivo usando TagLib
+            if (archivo.Tag.Pictures.Length > 0)
+            {
+                // Si tiene una imagen de portada, devolverla como byte[]
+                return archivo.Tag.Pictures[0].Data.Data;
+            }
+            else
+            {
+                return ObtenerImagenPorDefecto(); // Si no tiene imagen, usar la imagen por defecto
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al obtener la imagen de portada: {ex.Message}");
+            return ObtenerImagenPorDefecto(); // En caso de error, usar la imagen por defecto
+        }
     }
-}
+
+        // Método para obtener la imagen por omisión desde un archivo .png
+    private byte[] ObtenerImagenPorDefecto()
+    {
+        try
+        {
+            // Ruta relativa a la imagen en el directorio de salida
+            string rutaImagen = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "imagen_por_omision.png");
+            // Leer el archivo de la imagen
+            return File.ReadAllBytes(rutaImagen);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar la imagen por defecto: {ex.Message}");
+            return new byte[0]; // Retorna una imagen vacía en caso de error
+        }
+    }
+
+
+
+        public override string ToString()
+        {
+            string infoCancion = $"ID: {Id}\n" +
+                                 $"Título: {Titulo}\n" +
+                                 $"Álbum: {Album}\n" +
+                                 $"Intérprete: {Intérprete}\n" +
+                                 $"Año: {Año}\n" +
+                                 $"Género: {Genero}\n" +
+                                 $"Pista: {Pista}\n" +
+                                 $"Es Grupo: {(EsGrupo ? "Sí" : "No")}\n" +
+                                 $"Path: {Path}\n";
+            if (Integrantes != null && Integrantes.Count > 0)
+            {
+                string integrantes = string.Join(", ", Integrantes);
+                infoCancion += $"Integrantes del Grupo: {integrantes}\n";
+                infoCancion += $"Fecha de Inicio del Grupo: {FechaInicioGrupo ?? "No especificada"}\n";
+                infoCancion += $"Fecha de Fin del Grupo: {FechaFinGrupo ?? "No especificada"}\n";
+            }
+            return infoCancion;
+        }
+    }
 }
