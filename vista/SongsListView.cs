@@ -34,7 +34,7 @@ namespace MusicApp.Vista {
         }
 
         // Nuevo método para cargar y mostrar las canciones
-        public void CargarCancionesConEncabezado(List<Cancion> canciones, System.Action<Cancion> OnCancionSeleccionada)
+        public void CargarCancionesConEncabezado(List<Buscador.Cancion> canciones, System.Action<Buscador.Cancion> OnCancionSeleccionada)
         {
             LimpiarVista();  // Limpiar la vista actual
 

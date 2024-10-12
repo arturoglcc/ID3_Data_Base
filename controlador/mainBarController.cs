@@ -14,7 +14,7 @@ using Microsoft.Data.Sqlite;
         private string rutaMinado; // Ruta donde se hará el minado
         public MainBarView vista;
         private MainView mainView;
-        private List<Buscador.Criterio> criteriosBusqueda;
+        public List<Buscador.Criterio> criteriosBusqueda;
 
         public MainBarController(SongsListView vistaCanciones, DisplayerController displayercon, MainView mainView)
         {
@@ -55,13 +55,13 @@ using Microsoft.Data.Sqlite;
         }
 
         // Agregar criterio
-        public void AgregarCriterio(string etiqueta, string valor)
+        public void AgregarCriterio(string etiqueta, string valor, bool inclusivo)
         {
             if (!string.IsNullOrEmpty(etiqueta) && !string.IsNullOrEmpty(valor))
             {
                 string columnaBaseDatos = TransformarEtiquetaAColumna(etiqueta);
-                criteriosBusqueda.Add(new Buscador.Criterio(columnaBaseDatos, valor, false)); // Especifica exclusividad si es necesario
-                Console.WriteLine($"Criterio agregado: {etiqueta} = {valor}");
+                criteriosBusqueda.Add(new Buscador.Criterio(columnaBaseDatos, valor, inclusivo)); // Especifica exclusividad si es necesario
+                Console.WriteLine($"Criterio agregado: {etiqueta} = {valor} esInclusivo={inclusivo}");
             }
         }
 
@@ -69,17 +69,13 @@ using Microsoft.Data.Sqlite;
         public void EjecutarBusqueda()
         {
             Buscador buscador = new Buscador();
-            List<Cancion> resultados = buscador.Buscar(criteriosBusqueda);
+            List<Buscador.Cancion> resultados = buscador.Buscar(criteriosBusqueda);
             Console.WriteLine($"Se encontraron {resultados.Count} canciones.");
             songsListController.CargarCanciones(resultados);
             criteriosBusqueda.Clear();
         }
 
-        // Mostrar ventana de criterios
-        public void MostrarCriterios()
-        {
-            // Lógica para mostrar la ventana de criterios
-        }
+ 
 
         // Transformar etiqueta a columna de base de datos
         private string TransformarEtiquetaAColumna(string etiquetaUsuario)
@@ -95,5 +91,18 @@ using Microsoft.Data.Sqlite;
                 default: throw new ArgumentException($"Etiqueta no reconocida: {etiquetaUsuario}");
             }
         }
+
+        // Método para eliminar los criterios seleccionados de la lista CriteriosBusqueda
+    public void EliminarCriterios(List<Buscador.Criterio> criteriosSeleccionados)
+    {
+        // Eliminar cada criterio seleccionado de la lista CriteriosBusqueda
+        foreach (Buscador.Criterio criterio in criteriosSeleccionados)
+        {
+            if (criteriosBusqueda.Contains(criterio))
+            {
+                criteriosBusqueda.Remove(criterio);
+            }
+        }
+    }
     }
 }

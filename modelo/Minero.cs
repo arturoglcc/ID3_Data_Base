@@ -42,11 +42,8 @@ class Minero
                 string rutaTransformada = archivo.Replace(" ", "_");
 
                 // Renombrar el archivo si la ruta se modificó
-                if (rutaTransformada != archivo)
-                {
-                    System.IO.File.Move(archivo, rutaTransformada);  // Usar System.IO.File para desambiguar
-                    Console.WriteLine($"Archivo renombrado: {archivo} -> {rutaTransformada}");
-                }
+                if (rutaTransformada != archivo) System.IO.File.Move(archivo, rutaTransformada);  
+
                 ActualizarPathEnBaseDeDatos(connection, archivo, rutaTransformada);
                 // Desambiguar usando el namespace completo para TagLib.File
                 TagLib.File file = TagLib.File.Create(rutaTransformada);
@@ -186,14 +183,25 @@ private void ActualizarPathEnBaseDeDatos(SqliteConnection connection, string rut
 
     // Función para obtener el año de creación del archivo si falta el año en las etiquetas
     static int ObtenerFechaDeArchivo(string path) {
-        try {
+    try {
+        // Usar TagLib para abrir el archivo y obtener las etiquetas
+        var file = TagLib.File.Create(path);
+        
+        // Verificar si tiene la etiqueta del año (ID3v2.4)
+        if (file.Tag.Year > 0) {
+            return (int)file.Tag.Year; // Devolver el año de la etiqueta
+        }
+        else {
+            // Si no hay etiqueta, usar la fecha de creación del archivo
             DateTime creationTime = System.IO.File.GetCreationTime(path);
             return creationTime.Year;
         }
-        catch {
-            return DateTime.Now.Year; // Si falla obtener la fecha de creación, usar el año actual
-        }
     }
+    catch {
+        // Si ocurre cualquier error, devolver el año actual
+        return DateTime.Now.Year;
+    }
+}
 
 
 private void BorrarDatosBaseDeDatos(SqliteConnection connection)

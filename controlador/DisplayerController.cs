@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 public class DisplayerController
 {
     public DisplayerView view;
-    private Cancion cancionActual = null!;
+    private Buscador.Cancion cancionActual = null!;
     private Editor editor;
 
     public DisplayerController()
@@ -20,7 +20,7 @@ public class DisplayerController
     }
 
     // Método para recibir una canción y determinar si mostrar datos de grupo
-    public void CargarCancion(Cancion cancion)
+    public void CargarCancion(Buscador.Cancion cancion)
     {
         cancionActual = cancion;
 
@@ -33,24 +33,13 @@ public class DisplayerController
         view.MostrarDatosCancion(cancion, mostrarDatosGrupo);
     }
 
-        public static void GuardarCambios(string titulo, string año, string genero, string performer, string pista,
-                                      string? integrantes, string? fechaInicioGrupo, string? fechaFinGrupo)
-    {
-        // Llamar al editor para guardar los nuevos datos
-        Console.WriteLine("Guardando cambios...");
-        Console.WriteLine($"Título: {titulo}, Año: {año}, Género: {genero}, Performer: {performer}, Pista: {pista}");
-        
-        if (integrantes != null)
-        {
-            Console.WriteLine($"Integrantes: {integrantes}, Fecha Inicio: {fechaInicioGrupo}, Fecha Fin: {fechaFinGrupo}");
-        }
-    }
-
     // Método para editar la canción
-    public void EditarCancion(string? nuevoTitulo, string nuevoAño, string nuevoGenero, string nuevoPerformer, string nuevaPista, string? nuevosIntegrantes, string? nuevaFechaInicio, string? nuevaFechaFin)
+    public void EditarCancion(string? nuevoTitulo, string nuevaFecha, string nuevoGenero, string nuevoPerformer,
+                              string nuevoAlbum, string nuevaPista, bool esGrupo, string? nuevosIntegrantes,
+                              string? nuevaFechaInicio, string? nuevaFechaFin)
     {
         // Convertir los datos según sea necesario
-        int.TryParse(nuevoAño, out int año);
+        int.TryParse(nuevaFecha, out int newYear);
         int.TryParse(nuevaPista, out int pista);
         
         if (nuevoTitulo == null) {
@@ -63,38 +52,40 @@ public class DisplayerController
 
         // Actualizar los datos de la canción seleccionada
         cancionActual.Titulo = nuevoTitulo;
-        cancionActual.Año = año;
+        cancionActual.Año = newYear;
         cancionActual.Genero = nuevoGenero;
         cancionActual.Intérprete = nuevoPerformer;
+        cancionActual.Album = nuevoAlbum;
         cancionActual.Pista = pista;
 
         // Si hay nuevos integrantes, actualizar la lista
         if (nuevosIntegrantes != null)
         {
-            cancionActual.Integrantes = new List<string>(nuevosIntegrantes.Split(','));
-        }
+            string[] separadores = new string[] { ",", "|", "-" };
+                cancionActual.Integrantes = new List<string>(nuevosIntegrantes.Split(separadores, StringSplitOptions.RemoveEmptyEntries));
 
-        String TipoPerformer = "solista";
-
-        if (nuevosIntegrantes != null || fechaInicio != null || fechaFin != null || cancionActual.Integrantes != null) {
-            TipoPerformer = "grupo";
+                // Limpiar los espacios en blanco de cada integrante
+                for (int i = 0; i < cancionActual.Integrantes.Count; i++)
+                {
+                    cancionActual.Integrantes[i] = cancionActual.Integrantes[i].Trim();
+                }
         }
 
         // Actualizar la canción y sus datos relacionados (grupo o solista)
         editor.EditarRola(
             cancionActual.Id, 
             nuevoTitulo, 
-            año, 
+            newYear, 
             nuevoGenero, 
             pista, 
-            TipoPerformer, 
-            cancionActual.Intérprete, 
+            esGrupo,
+            nuevoPerformer,
+            nuevoAlbum,
+            cancionActual.Path,  
             cancionActual.Integrantes, 
             fechaInicio, 
             fechaFin
         );
-
-        Console.WriteLine("Canción actualizada en la base de datos y en el archivo MP3.");
     }
 
      // Este método se llamará cuando se haga clic en "Reproducir"

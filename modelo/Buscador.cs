@@ -8,52 +8,69 @@ using System.Drawing;
 public class Buscador {
     private string connectionString = "Data Source=music_library.db;Version=3;";
 
-
     public class Criterio {
         public string Nombre { get; set; }    
         public string Valor { get; set; }     
-        public bool EsExclusivo { get; set; } 
+        public bool EsInclusivo { get; set; } 
 
-        public Criterio(string nombre, string valor, bool esExclusivo) {
+        public Criterio(string nombre, string valor, bool EsInclusivo) {
             Nombre = nombre ?? throw new ArgumentNullException(nameof(nombre));
             Valor = valor ?? throw new ArgumentNullException(nameof(valor));
-            EsExclusivo = esExclusivo;
+            this.EsInclusivo = EsInclusivo;
+        }
+
+        // Método para obtener la representación en texto del criterio
+        public override string ToString()
+        {
+            string tipo = EsInclusivo ? "Inclusivo" : "Exclusivo";
+            return $"{Nombre}: {Valor} ({tipo})";
         }
     }
 
     public List<Cancion> Buscar(List<Criterio> criterios) {
         List<Cancion> resultados = new List<Cancion>();
-    try {
-        string query = ConstruirConsulta(criterios);
+        try {
+            string query = ConstruirConsulta(criterios);
 
-        using (SQLiteConnection connection = new SQLiteConnection(connectionString)) {
-            connection.Open();
-            SQLiteCommand command = new SQLiteCommand(query, connection);
-
-            // Agregar parámetros a la consulta (para evitar SQL injection)
+            Console.WriteLine($"Consulta SQL: {query}");
             foreach (var criterio in criterios) {
-                command.Parameters.AddWithValue($"@{criterio.Nombre}", $"%{criterio.Valor}%");
+                Console.WriteLine($"Parámetro: @{criterio.Nombre} -> %{criterio.Valor}%");
             }
 
-            // Ejecutar la consulta y leer los resultados
-            SQLiteDataReader reader = command.ExecuteReader();
-            while (reader.Read()) {
-                // Leer los resultados y manejar posibles valores nulos
-                Cancion cancion = new Cancion(
-                    reader["title"] != DBNull.Value ? reader["title"]?.ToString() ?? "Unknown" : "Unknown",
-                    reader["name"] != DBNull.Value ? reader["name"]?.ToString() ?? "Unknown" : "Unknown",
-                    reader["performer"] != DBNull.Value ? reader["performer"]?.ToString() ?? "Unknown" : "Unknown",
-                    reader["year"] != DBNull.Value ? Convert.ToInt32(reader["year"]) : ObtenerFechaDeArchivo(reader["path"]?.ToString()),
-                    reader["genre"] != DBNull.Value ? reader["genre"]?.ToString() ?? "Unknown" : "Unknown",
-                    reader["track"] != DBNull.Value ? Convert.ToInt32(reader["track"]) : 1,
-                    reader["path"] != DBNull.Value ? reader["path"]?.ToString() ?? "Ruta no disponible" : "Ruta no disponible", // Usar el path correcto
-                    false
-                );
+            using (SQLiteConnection connection = new SQLiteConnection(connectionString)) {
+                connection.Open();
+                SQLiteCommand command = new SQLiteCommand(query, connection);
+
+                foreach (var criterio in criterios) {
+                    if (criterio.Nombre == "performer" || criterio.Nombre == "album") {
+                        // Agregar parámetros para performer y album
+                        command.Parameters.AddWithValue($"@{criterio.Nombre}", $"%{criterio.Valor}%");
+                    } else {
+                        // Agregar parámetros para otros criterios
+                        command.Parameters.AddWithValue($"@{criterio.Nombre}", $"%{criterio.Valor}%");
+                    }
+                }
+
+                // Ejecutar la consulta y leer los resultados
+                SQLiteDataReader reader = command.ExecuteReader();
+                while (reader.Read()) {
+                    if (!reader.HasRows) {
+                    Console.WriteLine("No se encontraron resultados.");
+                    continue;
+                }
+
+                var title = reader["title"] != DBNull.Value ? reader["title"]?.ToString() ?? "Unknown" : "Unknown";
+                var albumName = reader["album_name"]?.ToString() ?? "Unknown";
+                var performer = reader["performer"] != DBNull.Value ? reader["performer"]?.ToString() ?? "Unknown" : "Unknown";
+                var year = reader["year"] != DBNull.Value ? Convert.ToInt32(reader["year"]) : ObtenerFechaDeArchivo(reader["path"]?.ToString());
+                var genre = reader["genre"] != DBNull.Value ? reader["genre"]?.ToString() ?? "Unknown" : "Unknown";
+                var track = reader["track"] != DBNull.Value ? Convert.ToInt32(reader["track"]) : 1;
+                var path = reader["path"] != DBNull.Value ? reader["path"]?.ToString() ?? "Ruta no disponible" : "Ruta no disponible";
+                Cancion cancion = new Cancion(title, albumName, performer, year, genre, track, path, false);
                 resultados.Add(cancion);
+                }
             }
-        }
-    }
-    catch (Exception ex) {
+        } catch (Exception ex) {
         Console.WriteLine($"Error durante la búsqueda: {ex.Message}");
     }
 
@@ -73,23 +90,40 @@ public class Buscador {
         }
     }
 
-    private string ConstruirConsulta(List<Criterio> criterios)
-    {
-        string query = "SELECT rolas.id_rola, rolas.title, albums.name, performers.name as performer, rolas.year, rolas.genre, rolas.track, rolas.path " +
-                       "FROM rolas " +
-                       "JOIN albums ON rolas.id_album = albums.id_album " +
-                       "JOIN performers ON rolas.id_performer = performers.id_performer ";
+    private string ConstruirConsulta(List<Criterio> criterios) {
+        string query = "SELECT rolas.id_rola, rolas.title, albums.name AS album_name, performers.name as performer, rolas.year, rolas.genre, rolas.track, rolas.path " +
+               "FROM rolas " +
+               "JOIN albums ON rolas.id_album = albums.id_album " +
+               "JOIN performers ON rolas.id_performer = performers.id_performer ";
+
 
         if (criterios.Count > 0) {
             List<string> condicionesExclusivas = new List<string>();
             List<string> condicionesNoExclusivas = new List<string>();
-            
+
             foreach (var criterio in criterios) {
-                if (criterio.EsExclusivo) {
-                    condicionesExclusivas.Add($"{criterio.Nombre} LIKE @{criterio.Nombre}");
-                }
-                else {
-                    condicionesNoExclusivas.Add($"{criterio.Nombre} LIKE @{criterio.Nombre}");
+                if (criterio.EsInclusivo) {
+                    if (criterio.Nombre == "performer") {
+                        condicionesNoExclusivas.Add($"performers.name LIKE @{criterio.Nombre}");
+                    } else if (criterio.Nombre == "album") {
+                        condicionesNoExclusivas.Add($"albums.name LIKE @{criterio.Nombre}");
+                    } else if (criterio.Nombre == "id_album") {
+                        // Para campos numéricos, usamos '=' en lugar de 'LIKE'
+                        condicionesNoExclusivas.Add($"rolas.id_album = @{criterio.Nombre}");
+                    } else {
+                        condicionesNoExclusivas.Add($"rolas.{criterio.Nombre} LIKE @{criterio.Nombre}");
+                    }
+                } else {
+                   if (criterio.Nombre == "performer") {
+                        condicionesExclusivas.Add($"performers.name LIKE @{criterio.Nombre}");
+                    } else if (criterio.Nombre == "album") {
+                        condicionesExclusivas.Add($"albums.name LIKE @{criterio.Nombre}");
+                    } else if (criterio.Nombre == "id_album") {
+                        // Para campos numéricos, usamos '=' en lugar de 'LIKE'
+                        condicionesExclusivas.Add($"rolas.id_album = @{criterio.Nombre}");
+                    } else {
+                        condicionesExclusivas.Add($"rolas.{criterio.Nombre} LIKE @{criterio.Nombre}");  
+                    }
                 }
             }
 
@@ -105,9 +139,9 @@ public class Buscador {
                 query += "WHERE " + string.Join(" AND ", todasCondiciones);
             }
         }
+
         return query;
     }
-}
 
 public class Cancion
 {
@@ -157,14 +191,12 @@ public class Cancion
         try
         {
             var archivo = TagLib.File.Create(path); // Cargar el archivo usando TagLib
-            if (archivo.Tag.Pictures.Length > 0)
-            {
-                // Si tiene una imagen de portada, devolverla como byte[]
+            if (archivo.Tag.Pictures.Length > 0 && archivo.Tag.Pictures[0] != null) {
                 return archivo.Tag.Pictures[0].Data.Data;
             }
             else
             {
-                return ObtenerImagenPorDefecto(); // Si no tiene imagen, usar la imagen por defecto
+                return ObtenerImagenPorDefecto(); 
             }
         }
         catch (Exception)
@@ -213,4 +245,5 @@ public class Cancion
             return infoCancion;
         }
     }
+}
 }

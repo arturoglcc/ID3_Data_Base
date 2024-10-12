@@ -16,6 +16,7 @@ public class DisplayerView : Grid
     private Entry entryGenero;
     private Entry entryPerformer;
     private Entry entryPista;
+    private Entry entryAlbum;
     private Button botonEsGrupo;
     private Button botonEditar;
     private Button botonGuardar;
@@ -30,7 +31,7 @@ public class DisplayerView : Grid
     private Grid gridContainer;
     private DisplayerController displayerController;
     private Image imagePortada;
-    private Cancion cancion = null!;
+    private Buscador.Cancion cancion = null!;
 
     public DisplayerView(DisplayerController displayerController) : base() 
   {
@@ -77,53 +78,61 @@ public class DisplayerView : Grid
     entryPerformer.Sensitive = false;
     gridContainer.Attach(entryPerformer, 1, 5, 1, 1);
 
+    // Álbum - nuevo campo
+    Label labelAlbum = new Label("Álbum:");
+    gridContainer.Attach(labelAlbum, 0, 6, 1, 1);  // Etiqueta "Álbum" debajo de Performer
+    entryAlbum = new Entry();
+    entryAlbum.Sensitive = false;  // Inicialmente no editable
+    gridContainer.Attach(entryAlbum, 1, 6, 1, 1);
+
     // Pista
     Label labelPista = new Label("Pista:");
-    gridContainer.Attach(labelPista, 0, 6, 1, 1);
+    gridContainer.Attach(labelPista, 0, 7, 1, 1);
     entryPista = new Entry();
     entryPista.Sensitive = false;
-    gridContainer.Attach(entryPista, 1, 6, 1, 1);
+    gridContainer.Attach(entryPista, 1, 7, 1, 1);
 
     // Es Grupo - Botón Sí/No
     Label labelEsGrupo = new Label("Es Grupo:");
-    gridContainer.Attach(labelEsGrupo, 0, 7, 1, 1);  // Etiqueta Es Grupo en la fila 7
+    gridContainer.Attach(labelEsGrupo, 0, 8, 1, 1);  // Etiqueta Es Grupo en la fila 7
     botonEsGrupo = new Button(GetTextoEsGrupo(false));  // Inicializar con "No"
-    gridContainer.Attach(botonEsGrupo, 1, 7, 1, 1);  // Colocar en la segunda columna
+     botonEsGrupo.Sensitive = false;
+    gridContainer.Attach(botonEsGrupo, 1, 8, 1, 1);  // Colocar en la segunda columna
     botonEsGrupo.Clicked += OnEsGrupoClicked;  // Asociar el evento
 
     // Campos del grupo (inicialmente ocultos)
     Label labelIntegrantes = new Label("Integrantes del Grupo:");
-    gridContainer.Attach(labelIntegrantes, 0, 8, 1, 1);
+    gridContainer.Attach(labelIntegrantes, 0, 9, 1, 1);
     entryIntegrantes = new Entry();
     entryIntegrantes.Sensitive = false;
-    gridContainer.Attach(entryIntegrantes, 1, 8, 1, 1);
+    gridContainer.Attach(entryIntegrantes, 1, 9, 1, 1);
 
     Label labelFechaInicio = new Label("Fecha de Inicio:");
-    gridContainer.Attach(labelFechaInicio, 0, 9, 1, 1);
+    gridContainer.Attach(labelFechaInicio, 0, 10, 1, 1);
     entryFechaInicio = new Entry();
     entryFechaInicio.Sensitive = false;
-    gridContainer.Attach(entryFechaInicio, 1, 9, 1, 1);
+    gridContainer.Attach(entryFechaInicio, 1, 10, 1, 1);
 
     Label labelFechaFin = new Label("Fecha de Fin:");
-    gridContainer.Attach(labelFechaFin, 0, 10, 1, 1);
+    gridContainer.Attach(labelFechaFin, 0, 11, 1, 1);
     entryFechaFin = new Entry();
     entryFechaFin.Sensitive = false;
-    gridContainer.Attach(entryFechaFin, 1, 10, 1, 1);
+    gridContainer.Attach(entryFechaFin, 1, 11, 1, 1);
 
     // Botón para habilitar la edición
     botonEditar = new Button("Editar");
-    gridContainer.Attach(botonEditar, 0, 11, 1, 1); 
+    gridContainer.Attach(botonEditar, 0, 12, 1, 1); 
     botonEditar.Clicked += OnEditarClicked;
 
     // Botón para guardar los cambios
     botonGuardar = new Button("Guardar");
-    gridContainer.Attach(botonGuardar, 1, 11, 1, 1);
+    gridContainer.Attach(botonGuardar, 1, 12, 1, 1);
     botonGuardar.Sensitive = false;
     botonGuardar.Clicked += OnGuardarClicked;
 
     // Botón para reproducir la canción
     botonReproducir = new Button("Reproducir");
-    gridContainer.Attach(botonReproducir, 0, 12, 2, 1);
+    gridContainer.Attach(botonReproducir, 0, 13, 2, 1);
     botonReproducir.Clicked += OnReproducirClicked;
 
     // Agregar el contenedor principal al DisplayerView
@@ -147,6 +156,20 @@ private void OnEsGrupoClicked(object sender, EventArgs e)
 
     // Actualizar el texto del botón
     botonEsGrupo.Label = GetTextoEsGrupo(cancion.EsGrupo);
+
+    // Habilitar o deshabilitar los campos del grupo según el valor de EsGrupo
+    if (cancion.EsGrupo)
+    {
+        entryIntegrantes.Sensitive = true;
+        entryFechaInicio.Sensitive = true;
+        entryFechaFin.Sensitive = true;
+    }
+    else
+    {
+        entryIntegrantes.Sensitive = false;
+        entryFechaInicio.Sensitive = false;
+        entryFechaFin.Sensitive = false;
+    }
 }
 
 
@@ -191,10 +214,11 @@ private void OnEsGrupoClicked(object sender, EventArgs e)
         entryAño.Sensitive = true;
         entryGenero.Sensitive = true;
         entryPerformer.Sensitive = true;
+        entryAlbum.Sensitive = true; 
         entryPista.Sensitive = true;
+        botonEsGrupo.Sensitive = true;
 
-        // Habilitar también los campos del grupo si son visibles
-        if (entryIntegrantes.Visible)
+        if (cancion.EsGrupo)
         {
             entryIntegrantes.Sensitive = true;
             entryFechaInicio.Sensitive = true;
@@ -216,7 +240,9 @@ private void OnEsGrupoClicked(object sender, EventArgs e)
         string nuevoAño = entryAño.Text;
         string nuevoGenero = entryGenero.Text;
         string nuevoPerformer = entryPerformer.Text;
+        string nuevoAlbum = entryAlbum.Text;
         string nuevaPista = entryPista.Text;
+        bool esGrupo = cancion.EsGrupo;
         string? nuevosIntegrantes = entryIntegrantes.Visible ? entryIntegrantes.Text : null;
         string? nuevaFechaInicio = entryFechaInicio.Visible ? entryFechaInicio.Text : null;
         string? nuevaFechaFin = entryFechaFin.Visible ? entryFechaFin.Text : null;
@@ -226,7 +252,9 @@ private void OnEsGrupoClicked(object sender, EventArgs e)
                                   nuevoAño,
                                   nuevoGenero,
                                   nuevoPerformer,
+                                  nuevoAlbum,
                                   nuevaPista,
+                                  esGrupo,
                                   nuevosIntegrantes,
                                   nuevaFechaInicio,
                                   nuevaFechaFin);
@@ -236,7 +264,7 @@ private void OnEsGrupoClicked(object sender, EventArgs e)
     }
 
     // Método para mostrar los datos de la canción seleccionada
-    public void MostrarDatosCancion(Cancion cancion, bool mostrarDatosGrupo) {
+    public void MostrarDatosCancion(Buscador.Cancion cancion, bool mostrarDatosGrupo) {
         this.cancion = cancion;
         Console.WriteLine($"MostrarDatosCancion llamado para: {cancion.Titulo}");
         // Cargar la imagen de portada desde el byte[]
@@ -278,7 +306,9 @@ private void OnEsGrupoClicked(object sender, EventArgs e)
         entryAño.Text = cancion.Año.ToString();
         entryGenero.Text = cancion.Genero;
         entryPerformer.Text = cancion.Intérprete;
+        entryAlbum.Text = cancion.Album;
         entryPista.Text = cancion.Pista.ToString();
+        botonEsGrupo.Label = GetTextoEsGrupo(cancion.EsGrupo);
 
         // Si hay datos del grupo, mostrarlos
         if (mostrarDatosGrupo)
@@ -312,7 +342,9 @@ private void OnEsGrupoClicked(object sender, EventArgs e)
         entryAño.Sensitive = false;
         entryGenero.Sensitive = false;
         entryPerformer.Sensitive = false;
+        entryAlbum.Sensitive = false;
         entryPista.Sensitive = false;
+        botonEsGrupo.Sensitive = false;
 
         // Habilitar también los campos del grupo si son visibles
         if (entryIntegrantes.Visible)

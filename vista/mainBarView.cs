@@ -2,7 +2,8 @@ namespace MusicApp.Vista {
 
 using Gtk;
 using MusicApp.Controlador;
-using System;
+    using MusicApp.Modelo;
+    using System;
 
 public class MainBarView : Box
 {
@@ -12,6 +13,7 @@ public class MainBarView : Box
     private ComboBoxText comboEtiquetas;
     private MainBarController mainBarController;
     private EventBox barraColoreada;
+    private bool inclusivo;
 
     public MainBarView(MainBarController mainBarController) : base(Orientation.Vertical, 0)
     {
@@ -68,7 +70,7 @@ public class MainBarView : Box
         botonAgregarCriterio.SetSizeRequest(80, 30); // Tamaño reducido
         botonAgregarCriterio.Sensitive = false;
         botonAgregarCriterio.Valign = Align.Center;  // Alinear verticalmente al centro
-        botonAgregarCriterio.Clicked += (sender, e) => mainBarController.AgregarCriterio(comboEtiquetas.ActiveText, textoCriterio.Text);
+        botonAgregarCriterio.Clicked += (sender, e) => AbrirVentanaInclusivoExclusivo();
         contenedorBotones.PackStart(botonAgregarCriterio, false, false, 10);
 
         // Botón "Ejecutar Búsqueda"
@@ -83,7 +85,7 @@ public class MainBarView : Box
         botonCriterios.SetSizeRequest(80, 30); // Tamaño reducido
         botonCriterios.Sensitive = false;
         botonCriterios.Valign = Align.Center;  // Alinear verticalmente al centro
-        botonCriterios.Clicked += (sender, e) => mainBarController.MostrarCriterios();
+        botonCriterios.Clicked += (sender, e) => MostrarCriterios();
         contenedorBotones.PackStart(botonCriterios, false, false, 10);
 
         // Añadir los botones a la barra coloreada
@@ -93,6 +95,55 @@ public class MainBarView : Box
         barraPrincipal.PackStart(barraColoreada, false, false, 0);
         PackStart(barraPrincipal, false, false, 0);
     }
+
+    private void AbrirVentanaInclusivoExclusivo()
+    {
+        // Crear una ventana de diálogo
+        Dialog dialogo = new Dialog("¿El criterio es?", null, DialogFlags.Modal);
+
+        // Configurar la ventana
+        dialogo.SetSizeRequest(300, 100);
+
+        // Crear un contenedor vertical para la pregunta y los botones
+        Box contenedorPrincipal = new Box(Orientation.Vertical, 10); 
+
+        // Crear una caja horizontal para los botones
+        Box contenedorBotones = new Box(Orientation.Horizontal, 10);
+
+        // Botón "Inclusivo"
+        Button botonInclusivo = new Button("Inclusivo");
+        botonInclusivo.Clicked += (sender, e) => {
+        inclusivo = true;
+        mainBarController.AgregarCriterio(comboEtiquetas.ActiveText, textoCriterio.Text, inclusivo);
+        // Limpiar la barra de búsqueda
+        textoCriterio.Text = "";
+        // Habilitar el botón "Criterios"
+        botonCriterios.Sensitive = true;
+        dialogo.Destroy(); // Cierra el diálogo
+    };
+    contenedorBotones.PackStart(botonInclusivo, false, false, 10);
+
+    // Botón "Exclusivo"
+    Button botonExclusivo = new Button("Exclusivo");
+    botonExclusivo.Clicked += (sender, e) => {
+        inclusivo = false;
+        mainBarController.AgregarCriterio(comboEtiquetas.ActiveText, textoCriterio.Text, inclusivo);
+        // Limpiar la barra de búsqueda
+        textoCriterio.Text = "";
+        // Habilitar el botón "Criterios"
+        botonCriterios.Sensitive = true;
+        dialogo.Destroy(); // Cierra el diálogo
+    };
+    contenedorBotones.PackStart(botonExclusivo, false, false, 10);
+
+    // Añadir los botones al contenedor principal
+    contenedorPrincipal.PackStart(contenedorBotones, false, false, 10);
+
+    // Añadir el contenedor principal al ContentArea del diálogo
+    dialogo.ContentArea.PackStart(contenedorPrincipal, true, true, 10);
+
+    dialogo.ShowAll(); // Mostrar todos los elementos
+        }
 
     // Método para escuchar cambios en el criterio o texto
     private void OnCriterioOrTextoChanged()
@@ -106,6 +157,53 @@ public class MainBarView : Box
     public void SetCriteriosButtonSensitive(bool isEnabled)
     {
         botonCriterios.Sensitive = isEnabled;
+    }
+
+        private void MostrarCriterios()
+        {
+            // Obtener los criterios de búsqueda del controlador
+            List<Buscador.Criterio> criterios = mainBarController.criteriosBusqueda;
+
+            // Crear un diálogo para mostrar los criterios
+            Dialog dialogoCriterios = new Dialog("Criterios", null, DialogFlags.Modal);
+            dialogoCriterios.SetSizeRequest(300, 200);
+
+            // Crear un contenedor vertical para los criterios
+            Box contenedorCriterios = new Box(Orientation.Vertical, 10);
+
+            List<Buscador.Criterio> criteriosSeleccionados = new List<Buscador.Criterio>();
+
+            // Crear botones para cada criterio desde la lista del controlador
+            foreach (Buscador.Criterio criterio in criterios)
+            {
+                ToggleButton botonCriterio = new ToggleButton();
+                botonCriterio.Label = criterio.ToString();
+                botonCriterio.Toggled += (sender, e) => {
+                if (botonCriterio.Active)
+                {
+                    criteriosSeleccionados.Add(criterio);
+                }
+                else
+                {
+                    // Eliminar criterio deseleccionado
+                    criteriosSeleccionados.Remove(criterio);
+                }
+            };
+            contenedorCriterios.PackStart(botonCriterio, false, false, 5);
+        }
+
+        // Botón para eliminar criterios seleccionados
+        Button botonEliminar = new Button("Eliminar Criterios");
+        botonEliminar.Clicked += (sender, e) => {
+        mainBarController.EliminarCriterios(criteriosSeleccionados); // Llamar al controlador
+        dialogoCriterios.Destroy(); // Cerrar el diálogo
+        };
+        contenedorCriterios.PackStart(botonEliminar, false, false, 10);
+
+        // Añadir el contenedor al área de contenido del diálogo
+        dialogoCriterios.ContentArea.PackStart(contenedorCriterios, true, true, 10);
+
+        dialogoCriterios.ShowAll(); // Mostrar todos los elementos
     }
 }
 }

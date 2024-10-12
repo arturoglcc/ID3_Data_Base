@@ -9,9 +9,14 @@ public class Editor {
     private string connectionString = "Data Source=music_library.db;Version=3;";
 
     // Método para editar una rola
-    public void EditarRola(int idRola, string nuevoNombre, int nuevoAno, string nuevoGenero, int nuevoTrack, string tipoPerformer, string nombrePerformer, List<string>? integrantes = null, DateTime? fechaInicio = null, DateTime? fechaFin = null) {
+    public void EditarRola(int idRola, string nuevoNombre, int nuevaFecha, string nuevoGenero,
+                           int nuevoTrack, bool esGrupo,string nombrePerformer, string nuevoAlbum,
+                           string pathArchivo, List<string>? integrantes = null,
+                           DateTime? fechaInicio = null, DateTime? fechaFin = null
+                           ) 
+    {
         // Actualizar archivo MP3
-        if (!ModificarArchivoMP3(idRola, nuevoNombre, nuevoAno, nuevoGenero, nuevoTrack, nombrePerformer)) {
+        if (!ModificarArchivoMP3(idRola, nuevoNombre, nuevaFecha, nuevoGenero, nuevoTrack, nombrePerformer, pathArchivo, nuevoAlbum)) {
             Console.WriteLine("Error al modificar el archivo MP3.");
             return;
         }
@@ -22,14 +27,14 @@ public class Editor {
             using (SQLiteTransaction transaction = connection.BeginTransaction()) {
                 try {
                     // Actualizar la tabla rolas
-                    ActualizarRolaEnBaseDeDatos(connection, idRola, nuevoNombre, nuevoAno, nuevoGenero, nuevoTrack);
+                    ActualizarRolaEnBaseDeDatos(connection, idRola, nuevoNombre, nuevaFecha, nuevoGenero, nuevoTrack);
 
                     // Verificar si es un solista o un grupo
-                    if (tipoPerformer == "solista") {
+                    if (esGrupo == false) {
                         // Actualizar solista
                         ActualizarSolista(connection, nombrePerformer);
                     }
-                    else if (tipoPerformer == "grupo") {
+                    else if (esGrupo) {
                         // Actualizar grupo y sus integrantes
                         ActualizarGrupo(connection, nombrePerformer, integrantes, fechaInicio, fechaFin);
                     }
@@ -47,23 +52,32 @@ public class Editor {
     }
 
     // Método para modificar el archivo MP3
-    private bool ModificarArchivoMP3(int idRola, string nuevoNombre, int nuevoAno, string nuevoGenero, int nuevoTrack, string nombrePerformer)
+    private bool ModificarArchivoMP3(int idRola, string nuevoNombre, int nuevaFecha, string nuevoGenero,
+                                     int nuevoTrack, string nombrePerformer, string pathArchivo, string nuevoAlbum)
     {
         try
         {
-            // Obtener el path del archivo MP3 desde la base de datos
-            string pathArchivo = ObtenerPathArchivoMP3(idRola);
-
             // Modificar las etiquetas ID3v2.4 del archivo MP3
             TagLib.File archivo = TagLib.File.Create(pathArchivo);
             archivo.Tag.Title = nuevoNombre;
-            archivo.Tag.Year = (uint)nuevoAno;
+            archivo.Tag.Year = (uint)nuevaFecha;
             archivo.Tag.Genres = new[] { nuevoGenero };
             archivo.Tag.Track = (uint)nuevoTrack;
             archivo.Tag.Performers = new[] { nombrePerformer };
+            archivo.Tag.Album = nuevoAlbum;
 
             // Guardar los cambios
             archivo.Save();
+            archivo.Dispose();  
+            GC.Collect();  
+            GC.WaitForPendingFinalizers(); 
+            FileInfo fileInfo = new FileInfo(pathArchivo);
+            Console.WriteLine($"Título después de guardar: {archivo.Tag.Title}");
+            Console.WriteLine($"Año después de guardar: {archivo.Tag.Year}");
+            Console.WriteLine($"Género después de guardar: {string.Join(", ", archivo.Tag.Genres)}");
+            Console.WriteLine($"Pista después de guardar: {archivo.Tag.Track}");
+            Console.WriteLine($"Performers después de guardar: {string.Join(", ", archivo.Tag.Performers)}");
+
             return true;
         }
         catch (Exception ex)
@@ -140,15 +154,39 @@ public class Editor {
         }
     }
 
-    // Método para obtener el path del archivo MP3 desde la base de datos
-    private string ObtenerPathArchivoMP3(int idRola) {
-        using (SQLiteConnection connection = new SQLiteConnection(connectionString)) {
-            connection.Open();
-            string query = "SELECT path FROM rolas WHERE id_rola = @idRola";
-            SQLiteCommand command = new SQLiteCommand(query, connection);
-            command.Parameters.AddWithValue("@idRola", idRola);
-            return (string)command.ExecuteScalar();
+    private bool VerificarCambiosEnArchivoMP3(string pathArchivo, string nuevoNombre, int nuevaFecha, string nuevoGenero,
+                                          int nuevoTrack, string nombrePerformer)
+{
+    try
+    {
+        // Cargar el archivo MP3 nuevamente
+        TagLib.File archivoVerificado = TagLib.File.Create(pathArchivo);
+
+        // Verificar si los cambios se aplicaron
+        bool cambiosAplicados = archivoVerificado.Tag.Title == nuevoNombre &&
+                                archivoVerificado.Tag.Year == (uint)nuevaFecha &&
+                                archivoVerificado.Tag.Genres.Contains(nuevoGenero) &&
+                                archivoVerificado.Tag.Track == (uint)nuevoTrack &&
+                                archivoVerificado.Tag.Performers.Contains(nombrePerformer);
+
+        if (cambiosAplicados)
+        {
+            Console.WriteLine("Los cambios se aplicaron correctamente.");
+            return true;
+        }
+        else
+        {
+            Console.WriteLine("Los cambios no se aplicaron correctamente.");
+            return false;
         }
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error al verificar los cambios en el archivo MP3: {ex.Message}");
+        return false;
+    }
+}
+
+
 }
 }

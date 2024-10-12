@@ -66,7 +66,7 @@ public class MainView : Window
     }
 
         // Método para cambiar la disposición de la lista y mostrar los detalles de la canción
-    public void MostrarDetallesCancion(Cancion cancion)
+    public void MostrarDetallesCancion(Buscador.Cancion cancion)
     {
         // Eliminar la lista de canciones de la primera columna
         mainLayout.Remove(songsListView);
