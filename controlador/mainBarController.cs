@@ -85,7 +85,7 @@ using Microsoft.Data.Sqlite;
                 case "título": return "title";
                 case "género": return "genre";
                 case "intérprete": return "performer";
-                case "álbum": return "id_album";
+                case "álbum": return "album";
                 case "año": return "year";
                 case "pista": return "track";
                 default: throw new ArgumentException($"Etiqueta no reconocida: {etiquetaUsuario}");
